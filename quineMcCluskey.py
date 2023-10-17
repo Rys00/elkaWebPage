@@ -23,7 +23,7 @@ class QuineMcCluskey(object):
         self.createGroups()
 
         msg = ""
-        msg += f"Attempting to minimize function of {self.n} variables \nwith ones at positions: {self.ones}\n\n"
+        msg += f"Attempting to minimize function of {self.n} variables <br/>with ones at positions: {self.ones}<br/><br/>"
         msg += self.printGroups(self.groups, "Printing initial groups:")
         result = self.merge()
         i = 1
@@ -107,17 +107,17 @@ class QuineMcCluskey(object):
         padding = (tabSize*3 + maxGroupSize + maskSize + multiplierSize - maxLabelSize) // 2
 
         msg = ""
-        msg += f"\n{label}\n"
+        msg += f"<br/>{label}<br/>"
         for i, group in enumerate(groups):
             nr = ("{:<"+str(maxGroupNumber)+"}").format(str(i))
-            msg += "-"*padding + f" group nr {nr} " + "-"*padding+"\n"
+            msg += "-"*padding + f" group nr {nr} " + "-"*padding+"<br/>"
             for elem in group:
                 msg += " "*(tabSize//2) + ("{:<"+str(multiplierSize)+"}").format(f"{len(elem[0])}x") #8x
                 groupInfo = " ".join(("{:<"+str(maxNumberSize)+"}").format(str(e)+",") for e in elem[0])
                 msg += (" "*tabSize + "{:<"+str(maxGroupSize)+"}").format(f"({groupInfo})")
                 msg += " "*tabSize + " ".join(list(elem[1]))
-                msg += "\n"
-        msg += "\n"
+                msg += "<br/>"
+        msg += "<br/>"
         return msg
 
     def toBinString(self, n: int) -> (str, int):
