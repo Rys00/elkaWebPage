@@ -6,7 +6,7 @@ import sys
 ileZmiennych = int(sys.argv[1])
 #Tu wpisz wszystkie jedynki funkcji
 jedynki = [int(i) for i in sys.argv[2].split(";")]
-print(ileZmiennych, jedynki)
+#print(ileZmiennych, jedynki)
 
 # I tyle! Uruchom skrypt. Wyniki wraz z krokami zostaną zapisane w pliku groups.txt
 
@@ -21,23 +21,23 @@ class QuineMcCluskey(object):
         self.groups = []
         self.results = []
         self.createGroups()
-        with open("groups.txt", "w") as f:
-            f.write(f"Attempting to minimize function of {self.n} variables \nwith ones at positions: {self.ones}\n\n")
-            f.write(self.printGroups(self.groups, "Printing initial groups:"))
+
+        msg = ""
+        msg += f"Attempting to minimize function of {self.n} variables \nwith ones at positions: {self.ones}\n\n"
+        msg += self.printGroups(self.groups, "Printing initial groups:")
+        result = self.merge()
+        i = 1
+        while result == True:
+            msg += self.printGroups(self.groups, f"Printing groups after merge nr {i}")
             result = self.merge()
-            i = 1
-            while result == True:
-                f.write(self.printGroups(self.groups, f"Printing groups after merge nr {i}"))
-                result = self.merge()
-                i += 1
-            self.results = self.results[::-1]
-            f.write(self.printGroups([self.results], "Possible functions:"))
-            analyzed = self.analyzeResults()
-            f.write(self.printGroups([analyzed[0]], f"Required functions (are covering {analyzed[1]}):"))
-            if len(self.results) > 0: f.write(self.printGroups([self.results], f"Functions to choose from (need to cover {analyzed[2]}):"))
-        #print("Results saved to groups.txt")
-        with open("groups.txt", "r") as f:
-            print(f.read())
+            i += 1
+        self.results = self.results[::-1]
+        msg += self.printGroups([self.results], "Possible functions:")
+        analyzed = self.analyzeResults()
+        msg += self.printGroups([analyzed[0]], f"Required functions (are covering {analyzed[1]}):")
+        if len(self.results) > 0: msg += self.printGroups([self.results], f"Functions to choose from (need to cover {analyzed[2]}):")
+        
+        print(msg)
 
     def analyzeResults(self):
         onesUsed = {}

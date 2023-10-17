@@ -8,7 +8,7 @@
 <body>
     Minimalizator funkcji logicznych metodą Quine'a - McCluskey'a<br/>
     pokazuje kolejne etapy rozwiązania!
-    <form action="QuineMcCluskey.php.php" method="post">
+    <form action="QuineMcCluskey.php" method="post">
         Liczba zmiennych funkcji: <input type="text" name="amount" id="amount"><br/>
         Lista jedynek funkcji (oddzielaj ";"): <input type="text" name="ones" id="ones"><br/>
         <input type="submit" name="submit" value="Pokaż wynik">
