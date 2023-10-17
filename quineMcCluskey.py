@@ -1,9 +1,12 @@
+import sys
+
 #Dla tych co chcą użyć
 
 #Tu wpisz ile zmiennych ma twoja funkcja
-ileZmiennych = 5
+ileZmiennych = int(sys.argv[1])
 #Tu wpisz wszystkie jedynki funkcji
-jedynki = [0, 1, 4, 5, 6, 10, 11, 12, 14, 16, 17, 18, 19, 20, 21, 22, 25, 26, 27, 28, 29, 30, 31]
+jedynki = [int(i) for i in sys.argv[2].split(";")]
+print(ileZmiennych, jedynki)
 
 # I tyle! Uruchom skrypt. Wyniki wraz z krokami zostaną zapisane w pliku groups.txt
 
@@ -31,8 +34,10 @@ class QuineMcCluskey(object):
             f.write(self.printGroups([self.results], "Possible functions:"))
             analyzed = self.analyzeResults()
             f.write(self.printGroups([analyzed[0]], f"Required functions (are covering {analyzed[1]}):"))
-            f.write(self.printGroups([self.results], f"Functions to choose from (need to cover {analyzed[2]}):"))
-        print("Results saved to groups.txt")
+            if len(self.results) > 0: f.write(self.printGroups([self.results], f"Functions to choose from (need to cover {analyzed[2]}):"))
+        #print("Results saved to groups.txt")
+        with open("groups.txt", "r") as f:
+            print(f.read())
 
     def analyzeResults(self):
         onesUsed = {}
