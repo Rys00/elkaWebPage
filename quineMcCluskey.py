@@ -23,7 +23,7 @@ class QuineMcCluskey(object):
         self.createGroups()
 
         msg = ""
-        msg += f"Attempting to minimize function of {self.n} variables <br/>with ones at positions: {self.ones}<br/><br/>"
+        msg += f"Attempting to minimize function of {self.n} variables \nwith ones at positions: {self.ones}\n\n"
         msg += self.printGroups(self.groups, "Printing initial groups:")
         result = self.merge()
         i = 1
@@ -37,6 +37,9 @@ class QuineMcCluskey(object):
         msg += self.printGroups([analyzed[0]], f"Required functions (are covering {analyzed[1]}):")
         if len(self.results) > 0: msg += self.printGroups([self.results], f"Functions to choose from (need to cover {analyzed[2]}):")
         
+        msg.replace("\n", "<br/>")
+        msg.replace(" ", "&nbsp")
+
         print(msg)
 
     def analyzeResults(self):
@@ -107,17 +110,17 @@ class QuineMcCluskey(object):
         padding = (tabSize*3 + maxGroupSize + maskSize + multiplierSize - maxLabelSize) // 2
 
         msg = ""
-        msg += f"<br/>{label}<br/>"
+        msg += f"\n{label}\n"
         for i, group in enumerate(groups):
             nr = ("{:<"+str(maxGroupNumber)+"}").format(str(i))
-            msg += "-"*padding + f" group nr {nr} " + "-"*padding+"<br/>"
+            msg += "-"*padding + f" group nr {nr} " + "-"*padding+"\n"
             for elem in group:
                 msg += " "*(tabSize//2) + ("{:<"+str(multiplierSize)+"}").format(f"{len(elem[0])}x") #8x
                 groupInfo = " ".join(("{:<"+str(maxNumberSize)+"}").format(str(e)+",") for e in elem[0])
                 msg += (" "*tabSize + "{:<"+str(maxGroupSize)+"}").format(f"({groupInfo})")
                 msg += " "*tabSize + " ".join(list(elem[1]))
-                msg += "<br/>"
-        msg += "<br/>"
+                msg += "\n"
+        msg += "\n"
         return msg
 
     def toBinString(self, n: int) -> (str, int):
