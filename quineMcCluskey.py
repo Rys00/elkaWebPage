@@ -37,8 +37,8 @@ class QuineMcCluskey(object):
         msg += self.printGroups([analyzed[0]], f"Required functions (are covering {analyzed[1]}):")
         if len(self.results) > 0: msg += self.printGroups([self.results], f"Functions to choose from (need to cover {analyzed[2]}):")
         
-        msg.replace("\n", "<br/>")
-        msg.replace(" ", "&nbsp")
+        msg = msg.replace("\n", "<br/>")
+        msg = msg.replace(" ", "&nbsp")
 
         print(msg)
 
