@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rys00Tools</title>
+    <link rel="stylesheet" href="main.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Lobster&family=Solitreo&display=swap" rel="stylesheet">
+</head>
+<body>
+    <header>
+        <div id="gradient">
+            <span>Rys00 Tools</span>
+        </div>
+    </header>
+    <main>
+        <section id="tools">
+            <h1>Narzędzia:</h1>
+            <div id="quine">
+                <h2>Minimalizator funkcji logicznych metodą Quine'a - McCluskey'a</h2>
+                <h3>Pokazuje kolejne etapy rozwiązania!</h3>
+                <form action="QuineMcCluskey.php" method="post">
+                    <div class="item">Liczba zmiennych funkcji: <input type="text" name="amount" id="amount"></div>
+                    <div class="item">Lista jedynek funkcji (oddzielaj ";"): <input type="text" name="ones" id="ones"></div>
+                    <input type="submit" name="submit" value="Pokaż wynik">
+                </form>
+            </div>
+        </section>
+    </main>
+</body>
+</html>
