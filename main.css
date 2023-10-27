@@ -68,7 +68,6 @@ header #gradient {
     opacity: 0;
     animation: titleEntry 0.5s forwards ease-in-out 2s;
     mix-blend-mode: lighten;
-    border: 5px solid #113;
 }
 
 @keyframes titleEntry {
@@ -83,6 +82,7 @@ header span {
     mix-blend-mode: multiply;
     background-blend-mode: normal;
     text-align: center;
+    border: 5px solid #113;
 }
 
 
