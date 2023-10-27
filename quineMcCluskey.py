@@ -1,9 +1,24 @@
-import sys
+import argparse
 
-howManyVars = int(sys.argv[1])
-ones = [int(i) for i in sys.argv[2].split(";")]
-wildcards = [int(i) for i in sys.argv[3].split(";")]
-html = bool(int(sys.argv[4]))
+parser = argparse.ArgumentParser()
+
+parser.add_argument("--vars", help="Number of variables in function")
+parser.add_argument("--ones", help="List of function's ones (split with ';')")
+parser.add_argument(
+    "--wildcards", help="List of function's wildcards (split with ';')", default=""
+)
+parser.add_argument(
+    "--html",
+    help="Whether or not output in html format (0 for standard, 1 for html)",
+    default="0",
+)
+
+args = parser.parse_args()
+
+howManyVars = int(args.vars)
+ones = [int(i) for i in args.ones.split(";")]
+wildcards = [int(i) for i in args.wildcards.split(";")] if args.wildcards != "" else []
+html = bool(int(args.html))
 
 
 class QuineMcCluskey(object):
