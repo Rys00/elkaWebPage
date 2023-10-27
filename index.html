@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -10,6 +11,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Lobster&family=Solitreo&display=swap" rel="stylesheet">
 </head>
+
 <body>
     <header>
         <div id="cover"></div>
@@ -25,11 +27,17 @@
                 <h3>Pokazuje kolejne etapy rozwiązania!</h3>
                 <form action="QuineMcCluskey.php" method="post">
                     <div class="item">Liczba zmiennych funkcji: <input type="text" name="amount" id="amount"></div>
-                    <div class="item">Lista jedynek funkcji (oddzielaj ";"): <input type="text" name="ones" id="ones"></div>
+                    <div class="item">
+                        Lista jedynek funkcji (oddzielaj ";"): <input type="text" name="ones" id="ones">
+                    </div>
+                    <div class="item">
+                        Nieokreślone wartości (oddzielaj ";"): <input type="text" name="wildcards" id="wildcards">
+                    </div>
                     <input type="submit" name="submit" value="Pokaż wynik">
                 </form>
             </div>
         </section>
     </main>
 </body>
+
 </html>
