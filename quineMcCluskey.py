@@ -5,6 +5,11 @@ parser = argparse.ArgumentParser()
 parser.add_argument("--vars", help="Number of variables in function")
 parser.add_argument("--ones", help="List of function's ones (split with ';')")
 parser.add_argument(
+    "--summary",
+    help="Whether to only print summary or full step-by-slep solution (0 for step-by-step, 1 for summary)",
+    default="0"
+)
+parser.add_argument(
     "--wildcards", help="List of function's wildcards (split with ';')", default=""
 )
 parser.add_argument(
@@ -19,10 +24,11 @@ howManyVars = int(args.vars)
 ones = [int(i) for i in args.ones.split(";")]
 wildcards = [int(i) for i in args.wildcards.split(";")] if args.wildcards != "" else []
 html = bool(int(args.html))
+summary = bool(int(args.summary))
 
 
 class QuineMcCluskey(object):
-    def __init__(self, n: int, ones, wildcards=[], html=False) -> None:
+    def __init__(self, n: int, ones, wildcards=[], html=False, summaryOnly=False) -> None:
         self.n = n
         self.ones = ones
         self.wildcards = wildcards
@@ -35,15 +41,18 @@ class QuineMcCluskey(object):
         msg += f"Attempting to minimize function of {self.n} variables \n"
         msg += f"With ones at positions: {self.ones}\n"
         msg += f"And wildcards at positions: {self.wildcards}\n\n"
-        msg += self.printGroups(self.groups, "Printing initial groups:")
+        if not summaryOnly:
+            msg += self.printGroups(self.groups, "Printing initial groups:")
         result = self.merge()
         i = 1
         while result:
-            msg += self.printGroups(self.groups, f"Printing groups after merge nr {i}")
+            if not summaryOnly:
+                msg += self.printGroups(self.groups, f"Printing groups after merge nr {i}")
             result = self.merge()
             i += 1
         self.results = self.results[::-1]
-        msg += self.printGroups([self.results], "Possible functions:")
+        if not summaryOnly:
+            msg += self.printGroups([self.results], "Possible functions:")
         analyzed = self.analyzeResults()
         msg += self.printGroups(
             [analyzed[0]], f"Required functions (are covering {analyzed[1]}):"
@@ -251,7 +260,4 @@ class QuineMcCluskey(object):
 
 
 if __name__ == "__main__":
-    QuineMcCluskey(howManyVars, ones, wildcards, html)
-    # QuineMcCluskey(3, [3,4,5,6,7])
-    # QuineMcCluskey(5, [0, 1, 4, 5, 6, 10, 11, 12, 14, 16, 17, 18, 19, 20, 21, 22, 25, 26, 27, 28, 29, 30, 31])
-    # QuineMcCluskey(6, [0, 1, 4, 5, 6, 10, 11, 12, 14, 16, 17, 18, 19, 20, 21, 22, 25, 26, 27, 28, 29, 30, 31, 40, 41, 44, 45, 46, 47, 48, 56, 57, 58, 59, 60, 61, 62, 63])
+    QuineMcCluskey(howManyVars, ones, wildcards, html, summary)

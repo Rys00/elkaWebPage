@@ -10,6 +10,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Lobster&family=Solitreo&display=swap" rel="stylesheet">
+    <script src="main.js" defer></script>
 </head>
 
 <body>
@@ -27,11 +28,11 @@
                 <h3>Pokazuje kolejne etapy rozwiązania!</h3>
                 <form action="QuineMcCluskey.php" method="post">
                     <div class="item">Liczba zmiennych funkcji: <input type="text" name="amount" id="amount"></div>
-                    <div class="item">
-                        Lista jedynek funkcji (oddzielaj ";"): <input type="text" name="ones" id="ones">
-                    </div>
-                    <div class="item">
-                        Nieokreślone wartości (oddzielaj ";"): <input type="text" name="wildcards" id="wildcards">
+                    <div id="quineFunctions"></div>
+                    <button id="addQuineFunction">+</button>
+                    <input type="number" name="quineFunctionAmount" id="quineFunctionAmount" value="0">
+                    <div class="item" style="flex-direction: row; justify-content: center; gap: 10px;">
+                        Tylko rozwiązania: <input type="checkbox" name="summaryOnly" id="summaryOnly">
                     </div>
                     <input type="submit" name="submit" value="Pokaż wynik">
                 </form>
