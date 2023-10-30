@@ -23,7 +23,7 @@
         }
         for($i = 1; $i <= $n; $i++) {
             echo "<br/><h2>Results for function nr {$i}:</h2><br/>";
-            echo shell_exec("python quineMcCluskey.py --vars={$_POST["amount"]} --ones=\"{$_POST["ones{$i}"]}\" --wildcards=\"{$_POST["wildcards{$i}"]}\" --summary=\"{$summaryOnly}\" --html=1");
+            echo shell_exec("python3 quineMcCluskey.py --vars={$_POST["amount"]} --ones=\"{$_POST["ones{$i}"]}\" --wildcards=\"{$_POST["wildcards{$i}"]}\" --summary=\"{$summaryOnly}\" --html=1");
         }
         if(!isset($_POST["merge"])) {
             exit();
@@ -55,7 +55,7 @@
                 $wildcards = "{$_POST["wildcards{$set[$i]}"]};".$wildcards;
             }
             echo "<br/><h2>Results for merged functions nr {$nr}:</h2><br/>";
-            echo shell_exec("python quineMcCluskey.py --vars={$_POST["amount"]} --ones=\"{$ones}\" --wildcards=\"{$wildcards}\" --summary=\"1\" --mergeLevel={$n} --html=1");
+            echo shell_exec("python3 quineMcCluskey.py --vars={$_POST["amount"]} --ones=\"{$ones}\" --wildcards=\"{$wildcards}\" --summary=\"1\" --mergeLevel={$n} --html=1");
             return;
         }
         executeForSet($all);
