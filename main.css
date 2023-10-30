@@ -252,7 +252,14 @@ main {
     }
 }
 
-#addQuineFunction {
+.buttons {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+}
+
+.buttons>div {
     appearance: none;
     outline: none;
     border: none;
@@ -270,7 +277,11 @@ main {
     transition: all 0.5s;
 }
 
-#addQuineFunction:hover {
+.buttons>div:nth-child(2) {
+    background-color: #c55;
+}
+
+.buttons>div:hover {
     appearance: none;
     outline: none;
     border: none;

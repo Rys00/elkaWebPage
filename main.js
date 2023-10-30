@@ -1,10 +1,8 @@
 const quineFunctions = document.getElementById("quineFunctions");
 const quineFunctionAmount = document.getElementById("quineFunctionAmount");
 console.log(quineFunctionAmount.value);
-document.getElementById("addQuineFunction").addEventListener("click", function (e) {
-    e.preventDefault();
-    addQuineFunction();
-});
+document.getElementById("addQuineFunction").addEventListener("click", function () {addQuineFunction();});
+document.getElementById("removeQuineFunction").addEventListener("click", function () {removeQuineFunction();});
 
 function addQuineFunction() {
     quineFunctionAmount.value = parseInt(quineFunctionAmount.value)+1
@@ -22,6 +20,11 @@ function addQuineFunction() {
     </div>
     `;
     quineFunctions.appendChild(quineFunction);
+}
+
+function removeQuineFunction() {
+    quineFunctionAmount.value = parseInt(quineFunctionAmount.value)-1
+    quineFunctions.removeChild(quineFunctions.lastChild);
 }
 
 let copy = parseInt(quineFunctionAmount.value)
