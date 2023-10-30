@@ -29,10 +29,13 @@
                 <form action="QuineMcCluskey.php" method="post">
                     <div class="item">Liczba zmiennych funkcji: <input type="text" name="amount" id="amount"></div>
                     <div id="quineFunctions"></div>
-                    <button id="addQuineFunction">+</button>
-                    <input type="number" name="quineFunctionAmount" id="quineFunctionAmount" value="0">
+                    <div id="addQuineFunction">+</div>
+                    <input type="number" name="quineFunctionAmount" id="quineFunctionAmount" value="1">
                     <div class="item" style="flex-direction: row; justify-content: center; gap: 10px;">
                         Tylko rozwiązania: <input type="checkbox" name="summaryOnly" id="summaryOnly">
+                    </div>
+                    <div class="item" style="flex-direction: row; justify-content: center; gap: 10px;">
+                        Każda z każdą: <input type="checkbox" name="merge" id="merge">
                     </div>
                     <input type="submit" name="submit" value="Pokaż wynik">
                 </form>

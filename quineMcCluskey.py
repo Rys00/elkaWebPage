@@ -10,6 +10,11 @@ parser.add_argument(
     default="0"
 )
 parser.add_argument(
+    "--mergeLevel",
+    help="How many functions ones were inputted",
+    default="1"
+)
+parser.add_argument(
     "--wildcards", help="List of function's wildcards (split with ';')", default=""
 )
 parser.add_argument(
@@ -21,8 +26,27 @@ parser.add_argument(
 args = parser.parse_args()
 
 howManyVars = int(args.vars)
-ones = [int(i) for i in args.ones.split(";")]
-wildcards = [int(i) for i in args.wildcards.split(";")] if args.wildcards != "" else []
+mergeLevel = int(args.mergeLevel)
+
+def validateData(char):
+    try:
+        i = int(char)
+        return True
+    except:
+        return False
+
+ones = []
+onesRaw = [int(i) for i in filter(validateData, args.ones.split(";"))]
+for one in onesRaw:
+    if one not in ones and onesRaw.count(one) == mergeLevel:
+        ones.append(one)
+
+wildcards = []
+wildcardsRaw = [int(i) for i in filter(validateData, args.wildcards.split(";"))] if args.wildcards != "" else []
+for wildcard in wildcardsRaw:
+    if wildcard not in wildcards and wildcardsRaw.count(wildcard) == mergeLevel:
+        wildcards.append(wildcard)
+
 html = bool(int(args.html))
 summary = bool(int(args.summary))
 
@@ -32,15 +56,26 @@ class QuineMcCluskey(object):
         self.n = n
         self.ones = ones
         self.wildcards = wildcards
-        self.binStringMask = "{:0>" + str(self.n) + "}"
-        self.groups = []
-        self.results = []
-        self.createGroups()
 
         msg = ""
         msg += f"Attempting to minimize function of {self.n} variables \n"
         msg += f"With ones at positions: {self.ones}\n"
         msg += f"And wildcards at positions: {self.wildcards}\n\n"
+        
+        if not self.ones:
+            msg += f"\nNo data given!\n"
+            if html:
+                msg = msg.replace("\n", "<br/>")
+                msg = msg.replace(" ", "&nbsp")
+            print(msg)
+            return
+        
+        self.binStringMask = "{:0>" + str(self.n) + "}"
+        self.groups = []
+        self.results = []
+        self.createGroups()
+
+        
         if not summaryOnly:
             msg += self.printGroups(self.groups, "Printing initial groups:")
         result = self.merge()

@@ -1,26 +1,40 @@
 const quineFunctions = document.getElementById("quineFunctions");
-var quineFunctionsCount = 0;
+const quineFunctionAmount = document.getElementById("quineFunctionAmount");
+console.log(quineFunctionAmount.value);
 document.getElementById("addQuineFunction").addEventListener("click", function (e) {
     e.preventDefault();
     addQuineFunction();
 });
 
 function addQuineFunction() {
-    quineFunctionsCount += 1;
-    document.getElementById("quineFunctionAmount").value = quineFunctionsCount
+    quineFunctionAmount.value = parseInt(quineFunctionAmount.value)+1
+    let i = quineFunctionAmount.value
     const quineFunction = document.createElement("div");
     quineFunction.innerHTML = `
-    <h4>Funkcja ${quineFunctionsCount}:</h4>
+    <h4>Funkcja ${i}:</h4>
     <div class="item">
         Lista jedynek funkcji (oddzielaj ";"):
-        <input type="text" name="ones${quineFunctionsCount}" id="ones${quineFunctionsCount}">
+        <input type="text" name="ones${i}" id="ones${i}">
     </div>
     <div class="item">
         Nieokreślone wartości (oddzielaj ";"):
-        <input type="text" name="wildcards${quineFunctionsCount}" id="wildcards${quineFunctionsCount}">
+        <input type="text" name="wildcards${i}" id="wildcards${i}">
     </div>
     `;
     quineFunctions.appendChild(quineFunction);
 }
 
-addQuineFunction()
+let copy = parseInt(quineFunctionAmount.value)
+quineFunctionAmount.value = 0
+for(let i = 0; i < copy; i++) {
+    addQuineFunction()
+}
+
+quineFunctionAmount.addEventListener("change", function() {
+    quineFunctions.innerHTML = ""
+    let copy = parseInt(quineFunctionAmount.value)
+    quineFunctionAmount.value = 0
+    for(let i = 0; i < copy; i++) {
+        addQuineFunction()
+    }
+});

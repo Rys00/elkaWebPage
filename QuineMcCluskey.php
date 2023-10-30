@@ -22,9 +22,43 @@
             $summaryOnly = 1;
         }
         for($i = 1; $i <= $n; $i++) {
-            echo "Results for function nr {$i}:<br/>";
-            echo shell_exec("python3 quineMcCluskey.py --vars={$_POST["amount"]} --ones=\"{$_POST["ones{$i}"]}\" --wildcards=\"{$_POST["wildcards{$i}"]}\" --summary=\"{$summaryOnly}\" --html=1");
+            echo "<br/><h2>Results for function nr {$i}:</h2><br/>";
+            echo shell_exec("python quineMcCluskey.py --vars={$_POST["amount"]} --ones=\"{$_POST["ones{$i}"]}\" --wildcards=\"{$_POST["wildcards{$i}"]}\" --summary=\"{$summaryOnly}\" --html=1");
         }
+        if(!isset($_POST["merge"])) {
+            exit();
+        }
+        $all = array();
+        for($i = 1; $i <= $n; $i++) {
+            array_push($all, $i);
+        }
+        function executeForSet($set) {
+            $n = count($set);
+            $nr = "";
+            $ones = "";
+            $wildcards = "";
+            for($i = $n-1; $i >= 0; $i--) {
+                if($n > 2) {
+                    $newSet = $set;
+                    array_splice($newSet, $i, 1); 
+                    executeForSet($newSet);
+                }
+
+                if($i == $n-1) {
+                    $nr = "{$set[$i]}".$nr;
+                } elseif ($i == $n-2) {
+                    $nr = "{$set[$i]} and ".$nr;
+                } else {
+                    $nr = "{$set[$i]}, ".$nr;
+                }
+                $ones = "{$_POST["ones{$set[$i]}"]};".$ones;
+                $wildcards = "{$_POST["wildcards{$set[$i]}"]};".$wildcards;
+            }
+            echo "<br/><h2>Results for merged functions nr {$nr}:</h2><br/>";
+            echo shell_exec("python quineMcCluskey.py --vars={$_POST["amount"]} --ones=\"{$ones}\" --wildcards=\"{$wildcards}\" --summary=\"1\" --mergeLevel={$n} --html=1");
+            return;
+        }
+        executeForSet($all);
     ?>
 </body>
 </html>
