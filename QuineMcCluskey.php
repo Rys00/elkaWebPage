@@ -16,14 +16,14 @@
             header("Location: index.php");
             exit();
         }
-        $n = $_POST["quineFunctionAmount"]
-        $summaryOnly = 0
+        $n = $_POST["quineFunctionAmount"];
+        $summaryOnly = 0;
         if(isset($_POST["summaryOnly"])) {
-            $summaryOnly = 1
+            $summaryOnly = 1;
         }
         for($i = 1; $i <= $n; $i++) {
-            echo "Results for function nr {$i}:<br/>"
-            echo shell_exec("python3 quineMcCluskey.py --vars={$_POST["amount"]} --ones=\"{$_POST["ones{$i}"]}\" --wildcards=\"{$_POST["wildcards{$i}"]}\" --summary=\"{$summaryOnly}\" --html=1")
+            echo "Results for function nr {$i}:<br/>";
+            echo shell_exec("python3 quineMcCluskey.py --vars={$_POST["amount"]} --ones=\"{$_POST["ones{$i}"]}\" --wildcards=\"{$_POST["wildcards{$i}"]}\" --summary=\"{$summaryOnly}\" --html=1");
         }
     ?>
 </body>
