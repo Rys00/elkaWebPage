@@ -309,3 +309,18 @@ main {
         width: 100%;
     }
 }
+
+a, a:visited, a:focus {
+    text-decoration: none;
+    color: var(--color-g-left);
+    font-weight: bold;
+}
+
+a:hover {
+    cursor: pointer;
+}
+
+iframe {
+    border: 0;
+    outline: 0;
+}

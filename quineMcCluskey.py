@@ -61,12 +61,16 @@ class QuineMcCluskey(object):
         msg += f"Attempting to minimize function of {self.n} variables \n"
         msg += f"With ones at positions: {self.ones}\n"
         msg += f"And wildcards at positions: {self.wildcards}\n\n"
+
+        if html:
+            msg += f"<a*s*href=\"karnaughMap.html?amount={self.n}&ones={';'.join([str(o) for o in self.ones])}&wildcards={';'.join([str(w) for w in self.wildcards])}\">Karnaugh map for this function</a>\n"
         
         if not self.ones:
             msg += f"\nNo data given!\n"
             if html:
                 msg = msg.replace("\n", "<br/>")
                 msg = msg.replace(" ", "&nbsp")
+                msg = msg.replace("*s*", " ")
             print(msg)
             return
         
@@ -101,6 +105,7 @@ class QuineMcCluskey(object):
         if html:
             msg = msg.replace("\n", "<br/>")
             msg = msg.replace(" ", "&nbsp")
+            msg = msg.replace("*s*", " ")
 
         print(msg)
 

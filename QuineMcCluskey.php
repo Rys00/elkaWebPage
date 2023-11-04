@@ -60,5 +60,22 @@
         }
         executeForSet($all);
     ?>
+    <script>
+        const links = document.querySelectorAll("a")
+        links.forEach(link => {
+            link.addEventListener("click", function (e) {
+                e.preventDefault();
+                const iframe = document.createElement("iframe");
+                iframe.src = e.target.href;
+                iframe.scrolling = "no";
+                iframe.frameborder = "0";
+                iframe.onload = function () {
+                    iframe.style.height = (iframe.contentWindow.document.getElementById("karnaughMap").scrollHeight+20) + 'px';
+                    iframe.style.width = (iframe.contentWindow.document.getElementById("karnaughMap").scrollWidth+20) + 'px';
+                }
+                e.target.parentNode.replaceChild(iframe, e.target);
+            });
+        });
+    </script>
 </body>
 </html>
