@@ -40,7 +40,7 @@ onesRaw = [int(i) for i in filter(validateData, args.ones.split(";"))]
 for one in onesRaw:
     if one not in ones and onesRaw.count(one) == mergeLevel:
         ones.append(one)
-ones = [0, 1, 4, 5, 6, 10, 11, 12, 14, 16, 17, 18, 19, 20, 21, 22, 25, 26, 27, 28, 29, 30, 31]
+#ones = [0, 1, 4, 5, 6, 10, 11, 12, 14, 16, 17, 18, 19, 20, 21, 22, 25, 26, 27, 28, 29, 30, 31]
 
 wildcards = []
 wildcardsRaw = [int(i) for i in filter(validateData, args.wildcards.split(";"))] if args.wildcards != "" else []
