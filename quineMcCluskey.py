@@ -40,6 +40,7 @@ onesRaw = [int(i) for i in filter(validateData, args.ones.split(";"))]
 for one in onesRaw:
     if one not in ones and onesRaw.count(one) == mergeLevel:
         ones.append(one)
+ones = [0, 1, 4, 5, 6, 10, 11, 12, 14, 16, 17, 18, 19, 20, 21, 22, 25, 26, 27, 28, 29, 30, 31]
 
 wildcards = []
 wildcardsRaw = [int(i) for i in filter(validateData, args.wildcards.split(";"))] if args.wildcards != "" else []
@@ -92,15 +93,28 @@ class QuineMcCluskey(object):
         self.results = self.results[::-1]
         if not summaryOnly:
             msg += self.printGroups([self.results], "Possible functions:")
+
+        self.currentSmallestSet = [9999, []]
         analyzed = self.analyzeResults()
-        msg += self.printGroups(
-            [analyzed[0]], f"Required functions (are covering {analyzed[1]}):"
-        )
-        if len(self.results) > 0:
+
+        if not summaryOnly:
             msg += self.printGroups(
-                [self.results],
-                f"Functions to choose from (need to cover {analyzed[2]}):",
+                [analyzed[0]], f"Required functions (are covering {analyzed[1]}):"
             )
+            if len(analyzed[3]) > 0:
+                msg += self.printGroups(
+                    [analyzed[3]],
+                    f"Functions to choose from (need to cover {analyzed[2]}):",
+                )
+            if len(analyzed[4]) > 0:
+                msg += self.printGroups(
+                    [analyzed[4]],
+                    f"Automatically chosen functions (from above):",
+                )
+
+        msg += self.printGroups(
+            [analyzed[5]], f"Final proposed set (covers all ones):"
+        )
 
         if html:
             msg = msg.replace("\n", "<br/>")
@@ -162,19 +176,47 @@ class QuineMcCluskey(object):
             self.results.pop(i)
 
         # calculate uncovered ones
-        covered = []
-        left = []
+        onesFromRequired = []
+        onesFromChosen = []
         for one in onesUsed.keys():
             if one in onesUsed and onesUsed[one] == 0:
-                left.append(one)
+                onesFromChosen.append(one)
             else:
-                covered.append(one)
+                onesFromRequired.append(one)
 
         # hide unrelevant ones in left functions
-        for i, elem in enumerate(self.results):
-            self.results[i] = ([(i if (i in elem[0]) else " ") for i in left], elem[1])
+        toChoose = []
+        
+        for elem in self.results:
+            toChoose.append(([(i if (i in elem[0]) else " ") for i in onesFromChosen], elem[1]))
+        
+        #try to find optimal set of chooseable functions
+        candidates = []
+        for elem in self.results:
+            neededOnes = [o for o in elem[0] if o in onesFromChosen]
+            candidates.append((neededOnes, elem[1], elem[0]))
+        
+        self.chooseSmallestSet(onesFromChosen, [], candidates)
 
-        return required, covered, left
+        chosen = [(e[2], e[1]) for e in self.currentSmallestSet[1]]
+        
+        final = required+chosen
+
+        return required, onesFromRequired, onesFromChosen, toChoose, chosen, final
+    
+    def chooseSmallestSet(self, onesToCover, testedSet, functionsToScan):
+        if len(testedSet) == self.currentSmallestSet[0]:
+            return
+        if not onesToCover:
+            if len(testedSet) < self.currentSmallestSet[0]:
+                self.currentSmallestSet[0] = len(testedSet)
+                self.currentSmallestSet[1] = testedSet
+            return
+        for i, func in enumerate(functionsToScan):
+            newOnes = [o for o in onesToCover if o not in func[0]]
+            newSet = testedSet.copy()
+            newSet.append(func)
+            self.chooseSmallestSet(newOnes, newSet, functionsToScan[i+1:])
 
     def printGroups(self, groups, label: str = "Printing groups:"):
         # styles
