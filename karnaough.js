@@ -109,14 +109,14 @@ for(let i = 0; i < 2**vertical; i++) {
 
         let idx = `${parseInt(verticalCodes[i]+horizontalCodes[j], 2)}`;
         if (ones.includes(idx)) {
-            newCell.innerHTML = "1"
+            newCell.innerHTML = "<div class='content'>1</div>";
             newCell.classList.add("one");
         } else if (wildcards.includes(idx)) {
-            newCell.innerHTML = "-"
+            newCell.innerHTML = "<div class='content'>-</div>";
             newCell.classList.add("wildcard");
         }
         else {
-            newCell.innerHTML = "0"
+            newCell.innerHTML = "<div class='content'>0</div>";
             newCell.classList.add("zero");
         }
         newCell.setAttribute("idx", idx);

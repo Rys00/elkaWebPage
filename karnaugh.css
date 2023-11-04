@@ -112,3 +112,10 @@
 #karnaughMap td.wildcard {
     background: radial-gradient(#555c, transparent, transparent)
 }
+
+#karnaughMap td .content {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    aspect-ratio: 1 / 1;
+}
