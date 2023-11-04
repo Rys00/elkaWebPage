@@ -63,7 +63,7 @@ class QuineMcCluskey(object):
         msg += f"And wildcards at positions: {self.wildcards}\n\n"
 
         if html:
-            msg += f"<a*s*href=\"karnaughMap.html?amount={self.n}&ones={';'.join([str(o) for o in self.ones])}&wildcards={';'.join([str(w) for w in self.wildcards])}\">Karnaugh map for this function</a>\n"
+            msg += f"<a*s*href=\"karnaughMap.html?amount={self.n}&direction='horizontal'&ones={';'.join([str(o) for o in self.ones])}&wildcards={';'.join([str(w) for w in self.wildcards])}\">Karnaugh map for this function</a>\n"
         
         if not self.ones:
             msg += f"\nNo data given!\n"
