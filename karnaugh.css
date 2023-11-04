@@ -100,3 +100,15 @@
     border-left-width: 4px;
     border-left-color: var(--accentLeft);
 }
+
+#karnaughMap td.zero {
+    background: radial-gradient(#f55c, transparent, transparent)
+}
+
+#karnaughMap td.one {
+    background: radial-gradient(#5f5c, transparent, transparent)
+}
+
+#karnaughMap td.wildcard {
+    background: radial-gradient(#555c, transparent, transparent)
+}

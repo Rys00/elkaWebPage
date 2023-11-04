@@ -108,9 +108,17 @@ for(let i = 0; i < 2**vertical; i++) {
         newCell = document.createElement("td");
 
         let idx = `${parseInt(verticalCodes[i]+horizontalCodes[j], 2)}`;
-        if (ones.includes(idx)) {newCell.innerHTML = "1"}
-        else if (wildcards.includes(idx)) {newCell.innerHTML = "-"}
-        else {newCell.innerHTML = "0"}
+        if (ones.includes(idx)) {
+            newCell.innerHTML = "1"
+            newCell.classList.add("one");
+        } else if (wildcards.includes(idx)) {
+            newCell.innerHTML = "-"
+            newCell.classList.add("wildcard");
+        }
+        else {
+            newCell.innerHTML = "0"
+            newCell.classList.add("zero");
+        }
         newCell.setAttribute("idx", idx);
 
         for (let a = 0; a < horizontalAxis.length; a++) {
