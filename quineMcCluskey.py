@@ -1,62 +1,11 @@
 import argparse
 
-parser = argparse.ArgumentParser()
-
-parser.add_argument("--vars", help="Number of variables in function")
-parser.add_argument("--ones", help="List of function's ones (split with ';')")
-parser.add_argument(
-    "--summary",
-    help="Whether to only print summary or full step-by-slep solution (0 for step-by-step, 1 for summary)",
-    default="0"
-)
-parser.add_argument(
-    "--mergeLevel",
-    help="How many functions ones were inputted",
-    default="1"
-)
-parser.add_argument(
-    "--wildcards", help="List of function's wildcards (split with ';')", default=""
-)
-parser.add_argument(
-    "--html",
-    help="Whether or not output in html format (0 for standard, 1 for html)",
-    default="0",
-)
-
-args = parser.parse_args()
-
-howManyVars = int(args.vars)
-mergeLevel = int(args.mergeLevel)
-
-def validateData(char):
-    try:
-        i = int(char)
-        return True
-    except:
-        return False
-
-ones = []
-onesRaw = [int(i) for i in filter(validateData, args.ones.split(";"))]
-for one in onesRaw:
-    if one not in ones and onesRaw.count(one) == mergeLevel:
-        ones.append(one)
-#ones = [0, 1, 4, 5, 6, 10, 11, 12, 14, 16, 17, 18, 19, 20, 21, 22, 25, 26, 27, 28, 29, 30, 31]
-
-wildcards = []
-wildcardsRaw = [int(i) for i in filter(validateData, args.wildcards.split(";"))] if args.wildcards != "" else []
-for wildcard in wildcardsRaw:
-    if wildcard not in wildcards and wildcardsRaw.count(wildcard) == mergeLevel:
-        wildcards.append(wildcard)
-
-html = bool(int(args.html))
-summary = bool(int(args.summary))
-
-
 class QuineMcCluskey(object):
-    def __init__(self, n: int, ones, wildcards=[], html=False, summaryOnly=False) -> None:
+    def __init__(self, n: int, ones, wildcards=[], excluded=[], html=False, summaryOnly=False) -> None:
         self.n = n
         self.ones = ones
         self.wildcards = wildcards
+        self.excluded = excluded
 
         msg = ""
         msg += f"Attempting to minimize function of {self.n} variables \n"
@@ -67,7 +16,7 @@ class QuineMcCluskey(object):
             msg += f"<a*s*href=\"karnaughMap.html?amount={self.n}&direction=horizontal&ones={';'.join([str(o) for o in self.ones])}&wildcards={';'.join([str(w) for w in self.wildcards])}\">Karnaugh map for this function</a>\n"
         
         if not self.ones:
-            msg += f"\nNo data given!\n"
+            msg += f"\nNo ones specified, can't minimize!\n"
             if html:
                 msg = msg.replace("\n", "<br/>")
                 msg = msg.replace(" ", "&nbsp")
@@ -113,8 +62,22 @@ class QuineMcCluskey(object):
                 )
 
         msg += self.printGroups(
-            [analyzed[5]], f"Final proposed set (covers all ones):"
+            [analyzed[5]], f"Final proposed set (covers {analyzed[6]}):"
         )
+
+        msg += "APN notation: "
+        if html:
+            msg += "<span*s*style='color:gold'>"
+        msg += " + ".join(self.codeToVars(elem[1], html) for elem in analyzed[5])
+        if html:
+            msg += f"</span>\n<button*s*onclick='copy(this)'*s*value='{' + '.join(self.codeToVars(elem[1], False) for elem in analyzed[5])}'>Copy APN</button>"
+
+        if excluded and not html:
+            mergesUseful = False
+            for one in self.excluded:
+                if one not in analyzed[6]:
+                    mergesUseful = True
+            msg += f"Excluded ones were proven to be {'useful' if mergesUseful else 'useless'}"
 
         if html:
             msg = msg.replace("\n", "<br/>")
@@ -122,6 +85,17 @@ class QuineMcCluskey(object):
             msg = msg.replace("*s*", " ")
 
         print(msg)
+
+    def codeToVars(self, binCode, html):
+        toReturn = []
+        for i, c in enumerate(binCode):
+            if c == "-":
+                continue
+            var = f"x{self.n - i - 1}"
+            neg = ("<span*s*style='text-decoration:overline'>" if html else "~") if c == "0" else ""
+            end = ("</span>" if html else "") if c == "0" else ""
+            toReturn.append(neg + var + end)
+        return "("+(" " if html else "*").join(toReturn)+")"
 
     def analyzeResults(self):
         onesUsed = {}
@@ -190,7 +164,7 @@ class QuineMcCluskey(object):
         for elem in self.results:
             toChoose.append(([(i if (i in elem[0]) else " ") for i in onesFromChosen], elem[1]))
         
-        #try to find optimal set of chooseable functions
+        # try to find optimal set of chooseable functions
         candidates = []
         for elem in self.results:
             neededOnes = [o for o in elem[0] if o in onesFromChosen]
@@ -200,9 +174,17 @@ class QuineMcCluskey(object):
 
         chosen = [(e[2], e[1]) for e in self.currentSmallestSet[1]]
         
+        # final answer
         final = required+chosen
 
-        return required, onesFromRequired, onesFromChosen, toChoose, chosen, final
+        covered = []
+        for elem in final:
+            for one in elem[0]:
+                if one not in covered:
+                    covered.append(one)
+        covered.sort()
+
+        return required, onesFromRequired, onesFromChosen, toChoose, chosen, final, covered
     
     def chooseSmallestSet(self, onesToCover, testedSet, functionsToScan):
         if len(testedSet) == self.currentSmallestSet[0]:
@@ -342,4 +324,64 @@ class QuineMcCluskey(object):
 
 
 if __name__ == "__main__":
-    QuineMcCluskey(howManyVars, ones, wildcards, html, summary)
+    parser = argparse.ArgumentParser()
+
+    parser.add_argument("--vars", help="Number of variables in function")
+    parser.add_argument("--ones", help="List of function's ones (split with ';')")
+    parser.add_argument(
+        "--summary",
+        help="Whether to only print summary or full step-by-slep solution (0 for step-by-step, 1 for summary)",
+        default="0"
+    )
+    parser.add_argument(
+        "--mergeLevel",
+        help="How many functions ones were inputted",
+        default="1"
+    )
+    parser.add_argument(
+        "--wildcards", help="List of function's wildcards (split with ';')", default=""
+    )
+    parser.add_argument(
+        "--excluded", help="List of excluded ones (split with ';')", default=""
+    )
+    parser.add_argument(
+        "--html",
+        help="Whether or not output in html format (0 for standard, 1 for html)",
+        default="0",
+    )
+
+    args = parser.parse_args()
+
+    howManyVars = int(args.vars)
+    mergeLevel = int(args.mergeLevel)
+
+    def validateData(char):
+        try:
+            i = int(char)
+            return True
+        except:
+            return False
+
+    excluded = []
+    excludedRaw = [int(i) for i in filter(validateData, args.excluded.split(";"))]
+    for one in excludedRaw:
+        if one not in excluded:
+            excluded.append(one)
+
+    wildcards = []
+    wildcardsRaw = [int(i) for i in filter(validateData, args.wildcards.split(";"))] if args.wildcards != "" else []
+    wildcardsRaw.extend(excluded)
+    for wildcard in wildcardsRaw:
+        if wildcard not in wildcards and wildcardsRaw.count(wildcard) >= mergeLevel:
+            wildcards.append(wildcard)
+
+    ones = []
+    onesRaw = [int(i) for i in filter(validateData, args.ones.split(";"))]
+    for one in onesRaw:
+        if one not in ones and onesRaw.count(one) >= mergeLevel and one not in excluded:
+            ones.append(one)
+    #ones = [0, 1, 4, 5, 6, 10, 11, 12, 14, 16, 17, 18, 19, 20, 21, 22, 25, 26, 27, 28, 29, 30, 31]
+
+    html = bool(int(args.html))
+    summary = bool(int(args.summary))
+    QuineMcCluskey(howManyVars, ones, wildcards, excluded, html, summary)

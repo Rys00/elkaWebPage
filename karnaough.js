@@ -25,7 +25,7 @@ try {
 }
 catch {
     vars = [];
-    for (let i = amount; i > 0; i--) {
+    for (let i = amount-1; i >= 0; i--) {
         vars.push(`x${i}`)
     }
 }
