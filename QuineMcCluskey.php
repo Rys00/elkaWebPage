@@ -55,8 +55,8 @@
                 echo "<br/><h2>Results for merged functions nr {$nr}:</h2><br/>";
                 echo shell_exec("python3 quineMcCluskey.py --vars={$_POST["amount"]} --ones=\"{$ones}\" --wildcards=\"{$wildcards}\" --summary=\"1\" --mergeLevel={$n} --html=1");
             }
+            executeForSet($all);
         }
-        executeForSet($all);
     ?>
     <script>
         const links = document.querySelectorAll("a")
