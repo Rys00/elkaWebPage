@@ -342,7 +342,7 @@ class QuineMcCluskey(object):
 
 
 class CombinedMinimization(object):
-    def __init__(self, varsAmount: int, ones, wildcards=[], combined=False, html=False, summaryOnly=False) -> None:
+    def __init__(self, varsAmount: int, ones, wildcards=[], combined=False, html=False, summaryOnly=False, finalOnly=False) -> None:
         self.varsAmount = varsAmount
         self.ones = ones
         self.wildcards = wildcards
@@ -353,9 +353,10 @@ class CombinedMinimization(object):
 
         msg = ""
         for i in range(self.funcAmount):
-            msg += f"<br/><h2>Results for function nr {i+1}:</h2><br/>"
             result = QuineMcCluskey(self.varsAmount, self.ones[i], self.wildcards[i], [], html, summaryOnly)
-            msg += result.result["message"]
+            if not finalOnly or not combined:
+                msg += f"<br/><h2>Results for function nr {i+1}:</h2><br/>"
+                msg += result.result["message"]
             self.subsets[i] = []
             self.subsets[0].append({
                 "regex": f".*{i}.*",
@@ -373,7 +374,6 @@ class CombinedMinimization(object):
         # python quineMcCluskey.py --vars 4 --ones "2;3;6;7;14;15|2;3;4;5;12;13;14;15|2;3;4;5;9;11;14;15" --summary 1 --html 0 --combined 1
         self.createAllSubsets([i for i in range(self.funcAmount)])
 
-        msg += f"<br/><h2>Results for merged functions nr {self.subsets[self.funcAmount-1][0]['name']}:</h2><br/>"
         result = QuineMcCluskey(
             self.varsAmount,
             self.subsets[self.funcAmount-1][0]["ones"],
@@ -381,7 +381,9 @@ class CombinedMinimization(object):
             [], html, summaryOnly)
         self.subsets[self.funcAmount-1][0]["functions"] = result.result["functions"]
         self.subsets[self.funcAmount-1][0]["covered"] = result.result["covered"]
-        msg += result.result["message"]
+        if not finalOnly:
+            msg += f"<br/><h2>Results for merged functions nr {self.subsets[self.funcAmount-1][0]['name']}:</h2><br/>"
+            msg += result.result["message"]
 
         for lvl in range(self.funcAmount-2, -1, -1):
             for ss in self.subsets[lvl]:
@@ -392,9 +394,11 @@ class CombinedMinimization(object):
                             toExclude.extend(ps["ones"])
                 
                 if(lvl == 1):
-                    msg += f"<br/><h2>Results for function nr {ss['name']} excluding all merges:</h2><br/>"
+                    if not finalOnly:
+                        msg += f"<br/><h2>Results for function nr {ss['name']} excluding all merges:</h2><br/>"
                 else:
-                    msg += f"<br/><h2>Results for merged functions nr {ss['name']} excluding higher merges:</h2><br/>"
+                    if not finalOnly:
+                        msg += f"<br/><h2>Results for merged functions nr {ss['name']} excluding higher merges:</h2><br/>"
                 
                 result = QuineMcCluskey(
                     self.varsAmount,
@@ -404,7 +408,8 @@ class CombinedMinimization(object):
                     html, summaryOnly)
                 ss["functions"] = result.result["functions"]
                 ss["covered"] = result.result["covered"]
-                msg += result.result["message"]
+                if not finalOnly:
+                    msg += result.result["message"]
 
         #print(self.subsets)
         for ss in self.subsets[0]:
@@ -534,7 +539,12 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "--combined",
-        help="Whether or not try ty make combined minimization",
+        help="Whether or not to make combined minimization (0 for normal, 1 for combined)",
+        default="0"
+    )
+    parser.add_argument(
+        "--finalOnly",
+        help="Whether to show only the final functions (0 for all, 1 for only final)",
         default="0"
     )
     parser.add_argument(
@@ -550,6 +560,7 @@ if __name__ == "__main__":
 
     howManyVars = int(args.vars)
     combined = bool(int(args.combined))
+    finalOnly = bool(int(args.finalOnly))
     amount = 1
     if args.ones:
         amount = args.ones.count("|")+1
@@ -586,4 +597,4 @@ if __name__ == "__main__":
 
     html = bool(int(args.html))
     summary = bool(int(args.summary))
-    CombinedMinimization(howManyVars, ones, wildcards, combined, html, summary)
+    CombinedMinimization(howManyVars, ones, wildcards, combined, html, summary, finalOnly)

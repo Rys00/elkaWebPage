@@ -28,8 +28,12 @@
             $summaryOnly = 1;
         }
         $combined = 0;
-        if(isset($_POST["merge"])) {
+        if(isset($_POST["combined"])) {
             $combined = 1;
+        }
+        $finalOnly = 0;
+        if(isset($_POST["finalOnly"])) {
+            $finalOnly = 1;
         }
         $ones = [];
         $wildcards = [];
@@ -39,7 +43,7 @@
         }
         $ones = join("|", $ones);
         $wildcards = join("|", $wildcards);
-        $command = "python3 quineMcCluskey.py --vars={$_POST["amount"]} --ones=\"{$ones}\" --wildcards=\"{$wildcards}\" --summary={$summaryOnly} --combined={$combined} --html=1";
+        $command = "python3 quineMcCluskey.py --vars={$_POST["amount"]} --ones=\"{$ones}\" --wildcards=\"{$wildcards}\" --summary={$summaryOnly} --combined={$combined} --finalOnly={$finalOnly} --html=1";
         echo shell_exec($command);
         echo "<br/><br/>Those were the results of executing command: <br/>{$command}";
     ?>
