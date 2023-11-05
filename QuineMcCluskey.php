@@ -187,7 +187,12 @@
         });
 
         function copy(button) {
-            navigator.clipboard.writeText(button.value);
+            const copyText = document.createElement("input");
+            copyText.value = button.value;
+            button.appendChild(copyText);
+            copyText.select();
+            document.execCommand("copy");
+            button.removeChild(copyText);
             button.style.setProperty("--opacity", 1);
             setTimeout(() => {
                 button.style.setProperty("--opacity", 0);
