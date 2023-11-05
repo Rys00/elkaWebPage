@@ -351,6 +351,7 @@ class CombinedMinimization(object):
         self.subsets = {}
         self.subsetsId = {}
 
+        # calculating APN for all function separately
         msg = ""
         for i in range(self.funcAmount):
             result = QuineMcCluskey(self.varsAmount, self.ones[i], self.wildcards[i], [], html, summaryOnly)
@@ -371,9 +372,11 @@ class CombinedMinimization(object):
             print(msg)
             return
         
-        # python quineMcCluskey.py --vars 4 --ones "2;3;6;7;14;15|2;3;4;5;12;13;14;15|2;3;4;5;9;11;14;15" --summary 1 --html 0 --combined 1
+        #! python quineMcCluskey.py --vars 4 --ones "2;3;6;7;14;15|2;3;4;5;12;13;14;15|2;3;4;5;9;11;14;15" --summary 1 --html 0 --combined 1
+        # creating all possible subsets of set of all functions
         self.createAllSubsets([i for i in range(self.funcAmount)])
 
+        # calculating APN for merge of all functions
         result = QuineMcCluskey(
             self.varsAmount,
             self.subsets[self.funcAmount-1][0]["ones"],
@@ -385,6 +388,7 @@ class CombinedMinimization(object):
             msg += f"<br/><h2>Results for merged functions nr {self.subsets[self.funcAmount-1][0]['name']}:</h2><br/>"
             msg += result.result["message"]
 
+        # calculating APN for all merges of functions from remaining subsets
         for lvl in range(self.funcAmount-2, -1, -1):
             for ss in self.subsets[lvl]:
                 toExclude = []
@@ -411,7 +415,8 @@ class CombinedMinimization(object):
                 if not finalOnly:
                     msg += result.result["message"]
 
-        #print(self.subsets)
+        # calculating optimal set of functions for each function
+        #   appending all useful functions
         for ss in self.subsets[0]:
             for lvlHi in range(self.funcAmount-1, 0, -1):
                 for ps in self.subsets[lvlHi]:
@@ -425,6 +430,23 @@ class CombinedMinimization(object):
                             if useful:
                                 ss["functions"].append(func)
 
+        #   removing functions that are no longer useful
+        for ss in self.subsets[0]:
+            newFunctions = []
+            for i in range(len(ss["functions"])-1, -1, -1):
+                temp = ss["functions"][:i][i+1:] # all functions minus f[i]
+                onesCopy = ss["ones"].copy()
+                for func in temp:
+                    for one in func[0]:
+                        if one in onesCopy:
+                            onesCopy.remove(one)
+                if onesCopy:
+                    newFunctions.append(func)
+            ss["functions"] = newFunctions
+
+                
+
+        # calculating final results for each function
         uniqueFunctions = {}
         for ss in self.subsets[0]:
             for func in ss["functions"]:
@@ -443,6 +465,7 @@ class CombinedMinimization(object):
                 copyButton = result.generateCopyButton(ss["functions"])
                 msg += f"</span>{copyButton}\n"
         
+        #     ... and printing all used functions
         uniqueFunctions = [(uniqueFunctions[func], func) for func in uniqueFunctions]
         ones = []
         for func in uniqueFunctions:
@@ -593,7 +616,7 @@ if __name__ == "__main__":
         for one in onesRaw:
             if one not in ones[fi]:
                 ones[fi].append(one)
-    #ones = [0, 1, 4, 5, 6, 10, 11, 12, 14, 16, 17, 18, 19, 20, 21, 22, 25, 26, 27, 28, 29, 30, 31]
+    #ones = 0;1;4;5;6;10;11;12;14;16;17;18;19;20;21;22;25;26;27;28;29;30;31
 
     html = bool(int(args.html))
     summary = bool(int(args.summary))
