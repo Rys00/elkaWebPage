@@ -1,19 +1,19 @@
-import argparse
+import argparse, re
 
 class QuineMcCluskey(object):
-    def __init__(self, n: int, ones, wildcards=[], excluded=[], html=False, summaryOnly=False) -> None:
-        self.n = n
-        self.ones = ones
-        self.wildcards = wildcards
+    def __init__(self, varsAmount: int, ones, wildcards=[], excluded=[], html=False, summaryOnly=False) -> None:
+        self.varsAmount = varsAmount
         self.excluded = excluded
+        self.ones = [one for one in ones if one not in excluded]
+        self.wildcards = wildcards
 
         msg = ""
-        msg += f"Attempting to minimize function of {self.n} variables \n"
+        msg += f"Attempting to minimize function of {self.varsAmount} variables \n"
         msg += f"With ones at positions: {self.ones}\n"
         msg += f"And wildcards at positions: {self.wildcards}\n\n"
 
         if html:
-            msg += f"<a*s*href=\"karnaughMap.html?amount={self.n}&direction=horizontal&ones={';'.join([str(o) for o in self.ones])}&wildcards={';'.join([str(w) for w in self.wildcards])}\">Karnaugh map for this function</a>\n"
+            msg += f"<a*s*href=\"karnaughMap.html?amount={self.varsAmount}&direction=horizontal&ones={';'.join([str(o) for o in self.ones])}&wildcards={';'.join([str(w) for w in self.wildcards])}\">Karnaugh map for this function</a>\n"
         
         if not self.ones:
             msg += f"\nNo ones specified, can't minimize!\n"
@@ -21,10 +21,15 @@ class QuineMcCluskey(object):
                 msg = msg.replace("\n", "<br/>")
                 msg = msg.replace(" ", "&nbsp")
                 msg = msg.replace("*s*", " ")
-            print(msg)
+            
+            self.result = {
+                "message": msg,
+                "functions": [],
+                "covered": []
+            }
             return
         
-        self.binStringMask = "{:0>" + str(self.n) + "}"
+        self.binStringMask = "{:0>" + str(self.varsAmount) + "}"
         self.groups = []
         self.results = []
         self.createGroups()
@@ -84,14 +89,18 @@ class QuineMcCluskey(object):
             msg = msg.replace(" ", "&nbsp")
             msg = msg.replace("*s*", " ")
 
-        print(msg)
+        self.result = {
+            "message": msg,
+            "functions": analyzed[5],
+            "covered": analyzed[6],
+        }
 
     def codeToVars(self, binCode, html):
         toReturn = []
         for i, c in enumerate(binCode):
             if c == "-":
                 continue
-            var = f"x{self.n - i - 1}"
+            var = f"x{self.varsAmount - i - 1}"
             neg = ("<span*s*style='text-decoration:overline'>" if html else "~") if c == "0" else ""
             end = ("</span>" if html else "") if c == "0" else ""
             toReturn.append(neg + var + end)
@@ -202,11 +211,11 @@ class QuineMcCluskey(object):
 
     def printGroups(self, groups, label: str = "Printing groups:"):
         # styles
-        maxNumberSize = len(str(2**self.n)) + 1
+        maxNumberSize = len(str(2**self.varsAmount)) + 1
         maxGroupSize = len(groups[0][0][0]) * (maxNumberSize + 1) + 2
         tabSize = 6
         maxGroupNumber = len(str(len(groups)))
-        maskSize = self.n * 2
+        maskSize = self.varsAmount * 2
         multiplierSize = maxGroupNumber + 1
         maxLabelSize = len(" group nr  ") + maxGroupNumber
         padding = (
@@ -247,7 +256,7 @@ class QuineMcCluskey(object):
         return self.binStringMask.format(b), ones
 
     def createGroups(self):
-        self.groups = [[] for i in range(self.n + 1)]
+        self.groups = [[] for i in range(self.varsAmount + 1)]
         for one in self.ones + self.wildcards:
             data = self.toBinString(one)
             self.groups[data[1]].append([[one], data[0], False])
@@ -323,6 +332,133 @@ class QuineMcCluskey(object):
         return True
 
 
+class CombinedMinimization(object):
+    def __init__(self, varsAmount: int, ones, wildcards=[], combined=False, html=False, summaryOnly=False) -> None:
+        self.varsAmount = varsAmount
+        self.ones = ones
+        self.wildcards = wildcards
+        self.funcAmount = len(self.ones)
+
+        self.subsets = {}
+        self.subsetsId = {}
+
+        msg = ""
+        for i in range(self.funcAmount):
+            msg += f"<br/><h2>Results for function nr {i+1}:</h2><br/>"
+            result = QuineMcCluskey(self.varsAmount, self.ones[i], self.wildcards[i], [], html, summaryOnly)
+            msg += result.result["message"]
+            self.subsets[i] = []
+            self.subsets[0].append({
+                "regex": f".*{i}.*",
+                "ones": self.ones[i],
+                "wildcards": self.wildcards[i],
+                "name": f"{i+1}",
+                "functions": result.result["functions"],
+                "covered": result.result["covered"]
+                })
+        
+        if not combined:
+            print(msg)
+            return
+        
+        # python quineMcCluskey.py --vars 4 --ones "2;3;6;7;14;15|2;3;4;5;12;13;14;15|2;3;4;5;9;11;14;15" --summary 1 --html 0 --combined 1
+        self.createAllSubsets([i for i in range(self.funcAmount)])
+
+        msg += f"<br/><h2>Results for merged functions nr {self.subsets[self.funcAmount-1][0]['name']}:</h2><br/>"
+        result = QuineMcCluskey(
+            self.varsAmount,
+            self.subsets[self.funcAmount-1][0]["ones"],
+            self.subsets[self.funcAmount-1][0]["wildcards"],
+            [], html, summaryOnly)
+        self.subsets[self.funcAmount-1][0]["functions"] = result.result["functions"]
+        self.subsets[self.funcAmount-1][0]["covered"] = result.result["covered"]
+        msg += result.result["message"]
+
+        for lvl in range(self.funcAmount-2, -1, -1):
+            for ss in self.subsets[lvl]:
+                toExclude = []
+                for lvlHi in range(lvl+1, self.funcAmount):
+                    for ps in self.subsets[lvlHi]:
+                        if re.search(ss["regex"], ps["regex"]):
+                            toExclude.extend(ps["ones"])
+                
+                if(lvl == 1):
+                    msg += f"<br/><h2>Results for function nr {ss['name']} excluding all merges:</h2><br/>"
+                else:
+                    msg += f"<br/><h2>Results for merged functions nr {ss['name']} excluding higher merges:</h2><br/>"
+                
+                result = QuineMcCluskey(
+                    self.varsAmount,
+                    ss["ones"],
+                    ss["wildcards"],
+                    toExclude,
+                    html, summaryOnly)
+                ss["functions"] = result.result["functions"]
+                ss["covered"] = result.result["covered"]
+                msg += result.result["message"]
+
+        #print(self.subsets)
+        print(msg)
+        
+    def createAllSubsets(self, parentSet):
+        parentSetId = ";".join([str(i) for i in parentSet])
+        if parentSetId in self.subsetsId:
+            return
+        
+        self.subsetsId[parentSetId] = 1
+        funcAmount = len(parentSet)
+        subsetId = []
+        subsetName = ""
+        onesRaw = []
+        wildcardsRaw = []
+        for i in range(funcAmount-1, -1, -1):
+            if funcAmount > 2:
+                # current set minus i element
+                self.createAllSubsets(parentSet[:i]+parentSet[i+1:])
+
+            if i == funcAmount-1:
+                subsetName = f"{parentSet[i]+1}"+subsetName
+            elif i == funcAmount-2:
+                subsetName = f"{parentSet[i]+1} and "+subsetName
+            else:
+                subsetName = f"{parentSet[i]+1}, "+subsetName
+            
+            subsetId.append(parentSet[i])
+            onesRaw.extend(self.ones[parentSet[i]])
+            wildcardsRaw.extend(self.wildcards[parentSet[i]])
+        
+        ones = []
+        wildcards = []
+        pom = {}
+        for i in range(len(onesRaw)):
+            if onesRaw[i] not in pom:
+                pom[onesRaw[i]] = 0
+            
+            pom[onesRaw[i]] += 1
+            if pom[onesRaw[i]] == funcAmount:
+                ones.append(onesRaw[i])
+            
+        pom = {}
+        for i in range(len(wildcardsRaw)):
+            if wildcardsRaw[i] not in pom:
+                pom[wildcardsRaw[i]] = 0
+            
+            pom[onesRaw[i]] += 1
+            if pom[wildcardsRaw[i]] == funcAmount:
+                wildcards.append(wildcardsRaw[i])
+
+        ones.sort()
+        wildcards.sort()
+
+        self.subsets[funcAmount-1].append({
+            "regex": f".*{'.*'.join([str(i) for i in subsetId[::-1]])}.*",
+            "ones": ones,
+            "wildcards": wildcards,
+            "name": subsetName,
+            "functions": []
+            })
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
@@ -334,15 +470,12 @@ if __name__ == "__main__":
         default="0"
     )
     parser.add_argument(
-        "--mergeLevel",
-        help="How many functions ones were inputted",
-        default="1"
+        "--combined",
+        help="Whether or not try ty make combined minimization",
+        default="0"
     )
     parser.add_argument(
         "--wildcards", help="List of function's wildcards (split with ';')", default=""
-    )
-    parser.add_argument(
-        "--excluded", help="List of excluded ones (split with ';')", default=""
     )
     parser.add_argument(
         "--html",
@@ -353,7 +486,10 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     howManyVars = int(args.vars)
-    mergeLevel = int(args.mergeLevel)
+    combined = bool(int(args.combined))
+    amount = 1
+    if args.ones:
+        amount = args.ones.count("|")+1
 
     def validateData(char):
         try:
@@ -362,26 +498,29 @@ if __name__ == "__main__":
         except:
             return False
 
-    excluded = []
-    excludedRaw = [int(i) for i in filter(validateData, args.excluded.split(";"))]
-    for one in excludedRaw:
-        if one not in excluded:
-            excluded.append(one)
-
     wildcards = []
-    wildcardsRaw = [int(i) for i in filter(validateData, args.wildcards.split(";"))] if args.wildcards != "" else []
-    wildcardsRaw.extend(excluded)
-    for wildcard in wildcardsRaw:
-        if wildcard not in wildcards and wildcardsRaw.count(wildcard) >= mergeLevel:
-            wildcards.append(wildcard)
+    wildcardsRawest = args.wildcards.split("|")
+    for i in range(len(wildcardsRawest), amount+1):
+        wildcardsRawest.append("")
+    for fi in range(amount):
+        wildcards.append([])
+        wildcardsRaw = [int(i) for i in filter(validateData, wildcardsRawest[fi].split(";"))] if wildcardsRawest[fi] != "" else []
+        for one in wildcardsRaw:
+            if one not in wildcards[fi]:
+                wildcards[fi].append(one)
 
     ones = []
-    onesRaw = [int(i) for i in filter(validateData, args.ones.split(";"))]
-    for one in onesRaw:
-        if one not in ones and onesRaw.count(one) >= mergeLevel and one not in excluded:
-            ones.append(one)
+    onesRawest = args.ones.split("|")
+    for i in range(len(onesRawest), amount+1):
+        onesRawest.append("")
+    for fi in range(amount):
+        ones.append([])
+        onesRaw = [int(i) for i in filter(validateData, onesRawest[fi].split(";"))] if onesRawest[fi] != "" else []
+        for one in onesRaw:
+            if one not in ones[fi]:
+                ones[fi].append(one)
     #ones = [0, 1, 4, 5, 6, 10, 11, 12, 14, 16, 17, 18, 19, 20, 21, 22, 25, 26, 27, 28, 29, 30, 31]
 
     html = bool(int(args.html))
     summary = bool(int(args.summary))
-    QuineMcCluskey(howManyVars, ones, wildcards, excluded, html, summary)
+    CombinedMinimization(howManyVars, ones, wildcards, combined, html, summary)
