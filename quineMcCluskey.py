@@ -434,14 +434,16 @@ class CombinedMinimization(object):
         for ss in self.subsets[0]:
             newFunctions = []
             for i in range(len(ss["functions"])-1, -1, -1):
-                temp = ss["functions"][:i][i+1:] # all functions minus f[i]
+                tempFunc = ss["functions"].copy()
+                tempFunc.pop(i)
+                print(ss["functions"], tempFunc)
                 onesCopy = ss["ones"].copy()
-                for func in temp:
+                for func in tempFunc:
                     for one in func[0]:
                         if one in onesCopy:
                             onesCopy.remove(one)
                 if onesCopy:
-                    newFunctions.append(func)
+                    newFunctions.append(ss["functions"][i]) # means that i function is still useful
             ss["functions"] = newFunctions
 
                 
