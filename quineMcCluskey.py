@@ -24,8 +24,8 @@ class QuineMcCluskey(object):
             
             self.result = {
                 "message": msg,
-                "functions": [],
-                "covered": []
+                "functionsOptions": [[]],
+                "coveredOptions": [[]]
             }
             return
         
@@ -52,47 +52,41 @@ class QuineMcCluskey(object):
         analyzed = self.analyzeResults()
 
         if not summaryOnly:
-            if len(analyzed[0]) > 0:
+            if len(analyzed['requiredFunctions']) > 0:
                 msg += self.printGroups(
-                    [analyzed[0]], f"Required functions (are covering {analyzed[1]}):"
+                    [analyzed['requiredFunctions']], f"Required functions (are covering {analyzed['onesFromRequired']}):"
                 )
-            if len(analyzed[3]) > 0:
+            if len(analyzed['functionsToChoose']) > 0:
                 msg += self.printGroups(
-                    [analyzed[3]],
-                    f"Functions to choose from (need to cover {analyzed[2]}):",
+                    [analyzed['functionsToChoose']],
+                    f"Functions to choose from (need to cover {analyzed['onesFromChosen']}):",
                 )
-            if len(analyzed[4]) > 0:
+            for i, chosenOption in enumerate(analyzed["chosenOptions"]):
                 msg += self.printGroups(
-                    [analyzed[4]],
-                    f"Automatically chosen functions (from above):",
+                    [chosenOption],
+                    f"Automatically chosen functions (from above) - option {i+1}:",
                 )
 
-        msg += self.printGroups(
-            [analyzed[5]], f"Final proposed set (covers {analyzed[6]}):"
-        )
-
-        msg += "APN notation: "
-        if html:
-            msg += "<span style='color:gold'>"
-        msg += " + ".join(self.codeToVars(elem[1], html) for elem in analyzed[5])
-        if html:
-            copyButton = self.generateCopyButton(analyzed[5])
-            msg += f"</span>{copyButton}\n"
-
-        if excluded and not html:
-            mergesUseful = False
-            for one in self.excluded:
-                if one not in analyzed[6]:
-                    mergesUseful = True
-            msg += f"Excluded ones were proven to be {'useful' if mergesUseful else 'useless'}"
+        for i, finalOption in enumerate(analyzed["finalOptions"]):
+            msg += self.printGroups(
+                [finalOption],
+                f"Final proposed set - option {i+1} (covers {analyzed['coveredOptions'][i]}):"
+            )
+            msg += "APN notation: "
+            if html:
+                msg += "<span style='color:gold'>"
+            msg += " + ".join(self.codeToVars(elem[1], html) for elem in finalOption)
+            if html:
+                copyButton = self.generateCopyButton(finalOption)
+                msg += f"</span>{copyButton}\n"
 
         if html:
             msg = msg.replace("\n", "<br/>")
 
         self.result = {
             "message": msg,
-            "functions": analyzed[5],
-            "covered": analyzed[6],
+            "functionsOptions": analyzed["finalOptions"],
+            "coveredOptions": analyzed["coveredOptions"],
         }
 
     def generateCopyButton(self, functions):
@@ -115,7 +109,7 @@ class QuineMcCluskey(object):
     def analyzeResults(self):
         onesUsed = {}
         toRemoveId = []
-        required = []
+        requiredFunctions = []
 
         # resetting all to 0
         for i in self.ones:
@@ -131,7 +125,7 @@ class QuineMcCluskey(object):
         for i, elem in enumerate(self.results):
             for one in elem[0]:
                 if one in onesUsed and onesUsed[one] == 1:
-                    required.append(elem)
+                    requiredFunctions.append(elem)
                     toRemoveId.append(i)
                     break
 
@@ -146,7 +140,7 @@ class QuineMcCluskey(object):
             onesUsed[i] = 0
 
         # set 1 for all covered by required functions
-        for elem in required:
+        for elem in requiredFunctions:
             for one in elem[0]:
                 if one in onesUsed:
                     onesUsed[one] = 1
@@ -174,10 +168,10 @@ class QuineMcCluskey(object):
                 onesFromRequired.append(one)
 
         # hide unrelevant ones in left functions
-        toChoose = []
+        functionsToChoose = []
         
         for elem in self.results:
-            toChoose.append(([(i if (i in elem[0]) else " ") for i in onesFromChosen], elem[1]))
+            functionsToChoose.append(([(i if (i in elem[0]) else " ") for i in onesFromChosen], elem[1]))
         
         # try to find optimal set of chooseable functions
         candidates = []
@@ -187,27 +181,38 @@ class QuineMcCluskey(object):
         
         self.chooseSmallestSet(onesFromChosen, [], candidates)
 
-        chosen = [(e[2], e[1]) for e in self.currentSmallestSet[1]]
+        chosenOptions = [[(e[2], e[1]) for e in ss] for ss in self.currentSmallestSet[1]]
         
         # final answer
-        final = required+chosen
+        finalOptions = [requiredFunctions+option for option in chosenOptions]
 
-        covered = []
-        for elem in final:
-            for one in elem[0]:
-                if one not in covered:
-                    covered.append(one)
-        covered.sort()
+        coveredOptions = [[] for i in finalOptions]
+        for option in range(len(finalOptions)):
+            for elem in finalOptions[option]:
+                for one in elem[0]:
+                    if one not in coveredOptions[option]:
+                        coveredOptions[option].append(one)
+            coveredOptions[option].sort()
 
-        return required, onesFromRequired, onesFromChosen, toChoose, chosen, final, covered
+        return {
+            "requiredFunctions": requiredFunctions,
+            "onesFromRequired": onesFromRequired,
+            "onesFromChosen": onesFromChosen,
+            "functionsToChoose": functionsToChoose,
+            "chosenOptions": chosenOptions,
+            "finalOptions": finalOptions,
+            "coveredOptions": coveredOptions
+        }
     
     def chooseSmallestSet(self, onesToCover, testedSet, functionsToScan):
-        if len(testedSet) == self.currentSmallestSet[0]:
-            return
         if not onesToCover:
             if len(testedSet) < self.currentSmallestSet[0]:
                 self.currentSmallestSet[0] = len(testedSet)
-                self.currentSmallestSet[1] = testedSet
+                self.currentSmallestSet[1] = [testedSet]
+            elif len(testedSet) == self.currentSmallestSet[0]:
+                self.currentSmallestSet[1].append(testedSet)
+            return
+        if len(testedSet) == self.currentSmallestSet[0]:
             return
         for i, func in enumerate(functionsToScan):
             newOnes = [o for o in onesToCover if o not in func[0]]
@@ -364,8 +369,8 @@ class CombinedMinimization(object):
                 "ones": self.ones[i],
                 "wildcards": self.wildcards[i],
                 "name": f"{i+1}",
-                "functions": result.result["functions"],
-                "covered": result.result["covered"]
+                "functionsOptions": result.result["functionsOptions"],
+                "coveredOptions": result.result["coveredOptions"]
                 })
         
         if not combined:
@@ -382,8 +387,8 @@ class CombinedMinimization(object):
             self.subsets[self.funcAmount-1][0]["ones"],
             self.subsets[self.funcAmount-1][0]["wildcards"],
             [], html, summaryOnly)
-        self.subsets[self.funcAmount-1][0]["functions"] = result.result["functions"]
-        self.subsets[self.funcAmount-1][0]["covered"] = result.result["covered"]
+        self.subsets[self.funcAmount-1][0]["functionsOptions"] = result.result["functionsOptions"]
+        self.subsets[self.funcAmount-1][0]["coveredOptions"] = result.result["coveredOptions"]
         if not finalOnly:
             msg += f"<br/><h2>Results for merged functions nr {self.subsets[self.funcAmount-1][0]['name']}:</h2><br/>"
             msg += result.result["message"]
@@ -410,64 +415,30 @@ class CombinedMinimization(object):
                     ss["wildcards"],
                     toExclude,
                     html, summaryOnly)
-                ss["functions"] = result.result["functions"]
-                ss["covered"] = result.result["covered"]
+                ss["functionsOptions"] = result.result["functionsOptions"]
+                ss["coveredOptions"] = result.result["coveredOptions"]
                 if not finalOnly:
                     msg += result.result["message"]
 
         # calculating optimal set of functions for each function
-        #   appending all useful functions
-        for ss in self.subsets[0]:
-            for lvlHi in range(self.funcAmount-1, 0, -1):
-                for ps in self.subsets[lvlHi]:
-                    if re.search(ss["regex"], ps["regex"]):
-                        for func in ps["functions"]:
-                            useful = False
-                            for one in func[0]:
-                                if one not in ss["covered"]:
-                                    useful = True
-                                    ss["covered"].append(one)
-                            if useful:
-                                ss["functions"].append(func)
-
-        #   removing functions that are no longer useful
-        for ss in self.subsets[0]:
-            newFunctions = []
-            for i in range(len(ss["functions"])-1, -1, -1):
-                tempFunc = ss["functions"].copy()
-                tempFunc.pop(i)
-                print(ss["functions"], tempFunc)
-                onesCopy = ss["ones"].copy()
-                for func in tempFunc:
-                    for one in func[0]:
-                        if one in onesCopy:
-                            onesCopy.remove(one)
-                if onesCopy:
-                    newFunctions.append(ss["functions"][i]) # means that i function is still useful
-            ss["functions"] = newFunctions
-
-                
-
+        self.subsets, uniqueFunctions = self.calculateOptimalSet(self.subsets.copy())
+        
         # calculating final results for each function
-        uniqueFunctions = {}
         for ss in self.subsets[0]:
-            for func in ss["functions"]:
-                if func[1] not in uniqueFunctions:
-                    uniqueFunctions[func[1]] = func[0]
             msg += f"<br/><h2>Final proposition for function nr {ss['name']}:</h2><br/>"
             if html:
                 link = result.generateLinkForKarnaughMap(self.varsAmount, ss["ones"], ss["wildcards"])
                 msg += f"<a href=\"{link}\">Karnaugh map for this function</a>\n"
-            msg += result.printGroups([ss["functions"]], "Proposed functions:")
+            msg += result.printGroups([ss["functionsOptions"][0]], "Proposed functions:")
             msg += "APN notation: "
             if html:
                 msg += "<span style='color:gold'>"
-            msg += " + ".join(result.codeToVars(elem[1], html) for elem in ss["functions"])
+            msg += " + ".join(result.codeToVars(elem[1], html) for elem in ss["functionsOptions"][0])
             if html:
-                copyButton = result.generateCopyButton(ss["functions"])
+                copyButton = result.generateCopyButton(ss["functionsOptions"][0])
                 msg += f"</span>{copyButton}\n"
         
-        #     ... and printing all used functions
+        # ...and printing all used functions
         uniqueFunctions = [(uniqueFunctions[func], func) for func in uniqueFunctions]
         ones = []
         for func in uniqueFunctions:
@@ -492,6 +463,67 @@ class CombinedMinimization(object):
             msg = msg.replace("\n", "<br/>")
 
         print(msg)
+    
+    def calculateOptimalSet(self, fromSet):
+        # appending all useful functions
+        for ss in fromSet[0]:
+            for lvlHi in range(self.funcAmount-1, 0, -1):
+                for ps in fromSet[lvlHi]:
+                    if re.search(ss["regex"], ps["regex"]):
+                        for func in ps["functionsOptions"][0]:
+                            for i, coveredOption in enumerate(ss["coveredOptions"]):
+                                useful = False
+                                for one in func[0]:
+                                    if one not in coveredOption:
+                                        useful = True
+                                        coveredOption.append(one)
+                                if useful:
+                                    ss["functionsOptions"][i].append(func)
+        
+        # executing for each option
+        for lvlHi in range(self.funcAmount-1, 0, -1):
+            for i, ps in enumerate(fromSet[lvlHi]):
+                if len(ps["functions"]) > 1:
+                    newVariant = fromSet.copy()
+                    newVariant[lvlHi][i]["functionsOptions"].pop(0)
+                    self.calculateOptimalSet(newVariant)
+
+        # removing functions that are no longer useful
+        for ss in fromSet[0]:
+            for functionsOption in ss["functionsOptions"]:
+                newFunctions = []
+                for i in range(len(functionsOption)-1, -1, -1):
+                    tempFunc = functionsOption.copy()
+                    tempFunc.pop(i)
+                    onesCopy = ss["ones"].copy()
+                    for func in tempFunc:
+                        for one in func[0]:
+                            if one in onesCopy:
+                                onesCopy.remove(one)
+                    if onesCopy:
+                        newFunctions.append(functionsOption[i]) # means that i function is still useful
+                functionsOption = newFunctions
+        
+        # selecting best options
+        for ss in fromSet[0]:
+            minSize = 9999
+            newOptions = []
+            for functionsOption in ss["functionsOptions"]:
+                if len(functionsOption) < minSize:
+                    minSize = len(functionsOption)
+                    newOptions = [functionsOption]
+                elif len(functionsOption) == minSize:
+                    newOptions.append(functionsOption)
+            ss["functionsOptions"] = newOptions
+
+        # calculating unique functions
+        uniqueFunctions = {}
+        for ss in fromSet[0]:
+            for func in ss["functionsOptions"][0]:
+                if func[1] not in uniqueFunctions:
+                    uniqueFunctions[func[1]] = func[0]
+        
+        return fromSet, uniqueFunctions
         
     def createAllSubsets(self, parentSet):
         parentSetId = ";".join([str(i) for i in parentSet])
