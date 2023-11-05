@@ -39,9 +39,9 @@
         }
         $ones = join("|", $ones);
         $wildcards = join("|", $wildcards);
-        $command = "python quineMcCluskey.py --vars={$_POST["amount"]} --ones=\"{$ones}\" --wildcards=\"{$wildcards}\" --summary={$summaryOnly} --combined={$combined} --html=1";
+        $command = "python3 quineMcCluskey.py --vars={$_POST["amount"]} --ones=\"{$ones}\" --wildcards=\"{$wildcards}\" --summary={$summaryOnly} --combined={$combined} --html=1";
         echo shell_exec($command);
-        echo "Those were results of executing command: <br/>{$command}";
+        echo "<br/><br/>Those were the results of executing command: <br/>{$command}";
     ?>
     <script>
         const links = document.querySelectorAll("a")

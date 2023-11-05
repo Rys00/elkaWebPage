@@ -6,6 +6,7 @@ class QuineMcCluskey(object):
         self.excluded = excluded
         self.ones = [one for one in ones if one not in excluded]
         self.wildcards = wildcards
+        self.html = html
 
         msg = ""
         msg += f"Attempting to minimize function of {self.varsAmount} variables \n"
@@ -13,14 +14,13 @@ class QuineMcCluskey(object):
         msg += f"And wildcards at positions: {self.wildcards}\n\n"
 
         if html:
-            msg += f"<a*s*href=\"karnaughMap.html?amount={self.varsAmount}&direction=horizontal&ones={';'.join([str(o) for o in self.ones])}&wildcards={';'.join([str(w) for w in self.wildcards])}\">Karnaugh map for this function</a>\n"
+            link = self.generateLinkForKarnaughMap(self.varsAmount, self.ones, self.wildcards)
+            msg += f"<a href=\"{link}\">Karnaugh map for this function</a>\n"
         
         if not self.ones:
             msg += f"\nNo ones specified, can't minimize!\n"
             if html:
                 msg = msg.replace("\n", "<br/>")
-                msg = msg.replace(" ", "&nbsp")
-                msg = msg.replace("*s*", " ")
             
             self.result = {
                 "message": msg,
@@ -52,9 +52,10 @@ class QuineMcCluskey(object):
         analyzed = self.analyzeResults()
 
         if not summaryOnly:
-            msg += self.printGroups(
-                [analyzed[0]], f"Required functions (are covering {analyzed[1]}):"
-            )
+            if len(analyzed[0]) > 0:
+                msg += self.printGroups(
+                    [analyzed[0]], f"Required functions (are covering {analyzed[1]}):"
+                )
             if len(analyzed[3]) > 0:
                 msg += self.printGroups(
                     [analyzed[3]],
@@ -72,10 +73,11 @@ class QuineMcCluskey(object):
 
         msg += "APN notation: "
         if html:
-            msg += "<span*s*style='color:gold'>"
+            msg += "<span style='color:gold'>"
         msg += " + ".join(self.codeToVars(elem[1], html) for elem in analyzed[5])
         if html:
-            msg += f"</span>\n<button*s*onclick='copy(this)'*s*value='{' + '.join(self.codeToVars(elem[1], False) for elem in analyzed[5])}'>Copy APN</button>"
+            copyButton = self.generateCopyButton(analyzed[5])
+            msg += f"</span>{copyButton}\n"
 
         if excluded and not html:
             mergesUseful = False
@@ -86,8 +88,6 @@ class QuineMcCluskey(object):
 
         if html:
             msg = msg.replace("\n", "<br/>")
-            msg = msg.replace(" ", "&nbsp")
-            msg = msg.replace("*s*", " ")
 
         self.result = {
             "message": msg,
@@ -95,13 +95,19 @@ class QuineMcCluskey(object):
             "covered": analyzed[6],
         }
 
+    def generateCopyButton(self, functions):
+        return f"<button onclick='copy(this)' value='{' + '.join(self.codeToVars(elem[1], False) for elem in functions)}'>Copy APN</button>"
+
+    def generateLinkForKarnaughMap(self, varsAmount, ones, wildcards):
+        return f"karnaughMap.html?amount={varsAmount}&direction=horizontal&ones={';'.join([str(o) for o in ones])}&wildcards={';'.join([str(w) for w in wildcards])}"
+
     def codeToVars(self, binCode, html):
         toReturn = []
         for i, c in enumerate(binCode):
             if c == "-":
                 continue
             var = f"x{self.varsAmount - i - 1}"
-            neg = ("<span*s*style='text-decoration:overline'>" if html else "~") if c == "0" else ""
+            neg = ("<span style='text-decoration:overline'>" if html else "~") if c == "0" else ""
             end = ("</span>" if html else "") if c == "0" else ""
             toReturn.append(neg + var + end)
         return "("+(" " if html else "*").join(toReturn)+")"
@@ -211,6 +217,7 @@ class QuineMcCluskey(object):
 
     def printGroups(self, groups, label: str = "Printing groups:"):
         # styles
+        if (not groups[0]): return ""
         maxNumberSize = len(str(2**self.varsAmount)) + 1
         maxGroupSize = len(groups[0][0][0]) * (maxNumberSize + 1) + 2
         tabSize = 6
@@ -243,6 +250,8 @@ class QuineMcCluskey(object):
                 msg += " " * tabSize + " ".join(list(elem[1]))
                 msg += "\n"
         msg += "\n"
+        if self.html:
+            msg = msg.replace(" ", "&nbsp")
         return msg
 
     def toBinString(self, n: int) -> (str, int):
@@ -398,6 +407,60 @@ class CombinedMinimization(object):
                 msg += result.result["message"]
 
         #print(self.subsets)
+        for ss in self.subsets[0]:
+            for lvlHi in range(self.funcAmount-1, 0, -1):
+                for ps in self.subsets[lvlHi]:
+                    if re.search(ss["regex"], ps["regex"]):
+                        for func in ps["functions"]:
+                            useful = False
+                            for one in func[0]:
+                                if one not in ss["covered"]:
+                                    useful = True
+                                    ss["covered"].append(one)
+                            if useful:
+                                ss["functions"].append(func)
+
+        uniqueFunctions = {}
+        for ss in self.subsets[0]:
+            for func in ss["functions"]:
+                if func[1] not in uniqueFunctions:
+                    uniqueFunctions[func[1]] = func[0]
+            msg += f"<br/><h2>Final proposition for function nr {ss['name']}:</h2><br/>"
+            if html:
+                link = result.generateLinkForKarnaughMap(self.varsAmount, ss["ones"], ss["wildcards"])
+                msg += f"<a href=\"{link}\">Karnaugh map for this function</a>\n"
+            msg += result.printGroups([ss["functions"]], "Proposed functions:")
+            msg += "APN notation: "
+            if html:
+                msg += "<span style='color:gold'>"
+            msg += " + ".join(result.codeToVars(elem[1], html) for elem in ss["functions"])
+            if html:
+                copyButton = result.generateCopyButton(ss["functions"])
+                msg += f"</span>{copyButton}\n"
+        
+        uniqueFunctions = [(uniqueFunctions[func], func) for func in uniqueFunctions]
+        ones = []
+        for func in uniqueFunctions:
+            for one in func[0]:
+                if one not in ones:
+                    ones.append(one)
+        
+        msg += f"<br/><h2>List of all used functions:</h2><br/>"
+        if html:
+            link = result.generateLinkForKarnaughMap(self.varsAmount, ones, [])
+            msg += f"<a href=\"{link}\">Karnaugh map if this was a function</a>\n"
+        msg += result.printGroups([uniqueFunctions], "Functions:")
+        msg += "APN notation: "
+        if html:
+            msg += "<span style='color:gold'>"
+        msg += " + ".join(result.codeToVars(elem[1], html) for elem in uniqueFunctions)
+        if html:
+            copyButton = result.generateCopyButton(uniqueFunctions)
+            msg += f"</span>{copyButton}\n"
+        
+        if html:
+            msg = msg.replace("\n", "<br/>")
+
         print(msg)
         
     def createAllSubsets(self, parentSet):
