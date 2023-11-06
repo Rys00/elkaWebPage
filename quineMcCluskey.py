@@ -1,11 +1,63 @@
 import argparse, re
+from copy import deepcopy
+
+
+def chooseSmallestSetOfFunctions(ones, functions):
+    currentSmallestSet = [9999, []]
+
+    def chooseSmallestSet(onesToCover, testedSet, functionsToScan):
+        if not onesToCover:
+            if len(testedSet) < currentSmallestSet[0]:
+                currentSmallestSet[0] = len(testedSet)
+                currentSmallestSet[1] = [testedSet]
+            elif len(testedSet) == currentSmallestSet[0]:
+                currentSmallestSet[1].append(testedSet)
+            return
+        if len(testedSet) == currentSmallestSet[0]:
+            return
+        for i, func in enumerate(functionsToScan):
+            newOnes = [o for o in onesToCover if o not in func[0]]
+            newSet = testedSet.copy()
+            newSet.append(func)
+            chooseSmallestSet(newOnes, newSet, functionsToScan[i + 1 :])
+
+    chooseSmallestSet(ones, [], functions)
+    return currentSmallestSet[1]
+
+
+def sortFunctions(functions):
+    byWeight = {}
+    for func in functions:
+        weight = len(func[0])
+        if weight not in byWeight:
+            byWeight[weight] = []
+        byWeight[weight].append(func)
+    byWeight = sorted(byWeight.items())[::-1]
+    toReturn = []
+    for element in byWeight:
+        toReturn.extend(element[1])
+    return toReturn
+
 
 class QuineMcCluskey(object):
-    def __init__(self, varsAmount: int, ones, wildcards=[], excluded=[], html=False, summaryOnly=False) -> None:
+    def __init__(
+        self,
+        varsAmount: int,
+        ones,
+        wildcards=[],
+        excluded=[],
+        html=False,
+        summaryOnly=False,
+    ) -> None:
         self.varsAmount = varsAmount
-        self.excluded = excluded
+        self.excluded = []
+        for one in excluded:
+            if one not in self.excluded and one in ones:
+                self.excluded.append(one)
+        self.wildcards = wildcards + [
+            one for one in self.excluded if one not in wildcards
+        ]
         self.ones = [one for one in ones if one not in excluded]
-        self.wildcards = wildcards
         self.html = html
 
         msg = ""
@@ -14,51 +66,54 @@ class QuineMcCluskey(object):
         msg += f"And wildcards at positions: {self.wildcards}\n\n"
 
         if html:
-            link = self.generateLinkForKarnaughMap(self.varsAmount, self.ones, self.wildcards)
-            msg += f"<a href=\"{link}\">Karnaugh map for this function</a>\n"
-        
+            link = self.generateLinkForKarnaughMap(
+                self.varsAmount, self.ones, self.wildcards
+            )
+            msg += f'<a href="{link}">Karnaugh map for this function</a>\n'
+
         if not self.ones:
             msg += f"\nNo ones specified, can't minimize!\n"
             if html:
                 msg = msg.replace("\n", "<br/>")
-            
+
             self.result = {
                 "message": msg,
                 "functionsOptions": [[]],
-                "coveredOptions": [[]]
+                "coveredOptions": [[]],
             }
             return
-        
+
         self.binStringMask = "{:0>" + str(self.varsAmount) + "}"
         self.groups = []
         self.results = []
         self.createGroups()
 
-        
         if not summaryOnly:
             msg += self.printGroups(self.groups, "Printing initial groups:")
         result = self.merge()
         i = 1
         while result:
             if not summaryOnly:
-                msg += self.printGroups(self.groups, f"Printing groups after merge nr {i}")
+                msg += self.printGroups(
+                    self.groups, f"Printing groups after merge nr {i}"
+                )
             result = self.merge()
             i += 1
         self.results = self.results[::-1]
         if not summaryOnly:
             msg += self.printGroups([self.results], "Possible functions:")
 
-        self.currentSmallestSet = [9999, []]
         analyzed = self.analyzeResults()
 
         if not summaryOnly:
-            if len(analyzed['requiredFunctions']) > 0:
+            if len(analyzed["requiredFunctions"]) > 0:
                 msg += self.printGroups(
-                    [analyzed['requiredFunctions']], f"Required functions (are covering {analyzed['onesFromRequired']}):"
+                    [analyzed["requiredFunctions"]],
+                    f"Required functions (are covering {analyzed['onesFromRequired']}):",
                 )
-            if len(analyzed['functionsToChoose']) > 0:
+            if len(analyzed["functionsToChoose"]) > 0:
                 msg += self.printGroups(
-                    [analyzed['functionsToChoose']],
+                    [analyzed["functionsToChoose"]],
                     f"Functions to choose from (need to cover {analyzed['onesFromChosen']}):",
                 )
             for i, chosenOption in enumerate(analyzed["chosenOptions"]):
@@ -70,7 +125,7 @@ class QuineMcCluskey(object):
         for i, finalOption in enumerate(analyzed["finalOptions"]):
             msg += self.printGroups(
                 [finalOption],
-                f"Final proposed set - option {i+1} (covers {analyzed['coveredOptions'][i]}):"
+                f"Final proposed set - option {i+1} (covers {analyzed['coveredOptions'][i]}):",
             )
             msg += "APN notation: "
             if html:
@@ -101,10 +156,14 @@ class QuineMcCluskey(object):
             if c == "-":
                 continue
             var = f"x{self.varsAmount - i - 1}"
-            neg = ("<span style='text-decoration:overline'>" if html else "~") if c == "0" else ""
+            neg = (
+                ("<span style='text-decoration:overline'>" if html else "~")
+                if c == "0"
+                else ""
+            )
             end = ("</span>" if html else "") if c == "0" else ""
             toReturn.append(neg + var + end)
-        return "("+(" " if html else "*").join(toReturn)+")"
+        return "(" + (" " if html else "*").join(toReturn) + ")"
 
     def analyzeResults(self):
         onesUsed = {}
@@ -169,22 +228,23 @@ class QuineMcCluskey(object):
 
         # hide unrelevant ones in left functions
         functionsToChoose = []
-        
+
         for elem in self.results:
-            functionsToChoose.append(([(i if (i in elem[0]) else " ") for i in onesFromChosen], elem[1]))
-        
+            functionsToChoose.append(
+                ([(i if (i in elem[0]) else " ") for i in onesFromChosen], elem[1])
+            )
+
         # try to find optimal set of chooseable functions
         candidates = []
         for elem in self.results:
             neededOnes = [o for o in elem[0] if o in onesFromChosen]
             candidates.append((neededOnes, elem[1], elem[0]))
-        
-        self.chooseSmallestSet(onesFromChosen, [], candidates)
+        smallestSet = chooseSmallestSetOfFunctions(onesFromChosen, candidates)
 
-        chosenOptions = [[(e[2], e[1]) for e in ss] for ss in self.currentSmallestSet[1]]
-        
+        chosenOptions = [[(e[2], e[1]) for e in ss] for ss in smallestSet]
+
         # final answer
-        finalOptions = [requiredFunctions+option for option in chosenOptions]
+        finalOptions = [requiredFunctions + option for option in chosenOptions]
 
         coveredOptions = [[] for i in finalOptions]
         for option in range(len(finalOptions)):
@@ -201,28 +261,13 @@ class QuineMcCluskey(object):
             "functionsToChoose": functionsToChoose,
             "chosenOptions": chosenOptions,
             "finalOptions": finalOptions,
-            "coveredOptions": coveredOptions
+            "coveredOptions": coveredOptions,
         }
-    
-    def chooseSmallestSet(self, onesToCover, testedSet, functionsToScan):
-        if not onesToCover:
-            if len(testedSet) < self.currentSmallestSet[0]:
-                self.currentSmallestSet[0] = len(testedSet)
-                self.currentSmallestSet[1] = [testedSet]
-            elif len(testedSet) == self.currentSmallestSet[0]:
-                self.currentSmallestSet[1].append(testedSet)
-            return
-        if len(testedSet) == self.currentSmallestSet[0]:
-            return
-        for i, func in enumerate(functionsToScan):
-            newOnes = [o for o in onesToCover if o not in func[0]]
-            newSet = testedSet.copy()
-            newSet.append(func)
-            self.chooseSmallestSet(newOnes, newSet, functionsToScan[i+1:])
 
     def printGroups(self, groups, label: str = "Printing groups:"):
         # styles
-        if (not groups[0]): return ""
+        if not groups[0]:
+            return ""
         maxNumberSize = len(str(2**self.varsAmount)) + 1
         maxGroupSize = len(groups[0][0][0]) * (maxNumberSize + 1) + 2
         tabSize = 6
@@ -347,7 +392,16 @@ class QuineMcCluskey(object):
 
 
 class CombinedMinimization(object):
-    def __init__(self, varsAmount: int, ones, wildcards=[], combined=False, html=False, summaryOnly=False, finalOnly=False) -> None:
+    def __init__(
+        self,
+        varsAmount: int,
+        ones,
+        wildcards=[],
+        combined=False,
+        html=False,
+        summaryOnly=False,
+        finalOnly=False,
+    ) -> None:
         self.varsAmount = varsAmount
         self.ones = ones
         self.wildcards = wildcards
@@ -359,24 +413,28 @@ class CombinedMinimization(object):
         # calculating APN for all function separately
         msg = ""
         for i in range(self.funcAmount):
-            result = QuineMcCluskey(self.varsAmount, self.ones[i], self.wildcards[i], [], html, summaryOnly)
+            result = QuineMcCluskey(
+                self.varsAmount, self.ones[i], self.wildcards[i], [], html, summaryOnly
+            )
             if not finalOnly or not combined:
-                msg += f"<br/><h2>Results for function nr {i+1}:</h2><br/>"
+                msg += f"<br/><h2>Results for separated function nr {i+1}:</h2><br/>"
                 msg += result.result["message"]
             self.subsets[i] = []
-            self.subsets[0].append({
-                "regex": f".*{i}.*",
-                "ones": self.ones[i],
-                "wildcards": self.wildcards[i],
-                "name": f"{i+1}",
-                "functionsOptions": result.result["functionsOptions"],
-                "coveredOptions": result.result["coveredOptions"]
-                })
-        
+            self.subsets[0].append(
+                {
+                    "regex": f".*{i}.*",
+                    "ones": self.ones[i],
+                    "wildcards": self.wildcards[i],
+                    "name": f"{i+1}",
+                    "functionsOptions": result.result["functionsOptions"],
+                    "coveredOptions": result.result["coveredOptions"],
+                }
+            )
+
         if not combined:
             print(msg)
             return
-        
+
         #! python quineMcCluskey.py --vars 4 --ones "2;3;6;7;14;15|2;3;4;5;12;13;14;15|2;3;4;5;9;11;14;15" --summary 1 --html 0 --combined 1
         # creating all possible subsets of set of all functions
         self.createAllSubsets([i for i in range(self.funcAmount)])
@@ -384,137 +442,176 @@ class CombinedMinimization(object):
         # calculating APN for merge of all functions
         result = QuineMcCluskey(
             self.varsAmount,
-            self.subsets[self.funcAmount-1][0]["ones"],
-            self.subsets[self.funcAmount-1][0]["wildcards"],
-            [], html, summaryOnly)
-        self.subsets[self.funcAmount-1][0]["functionsOptions"] = result.result["functionsOptions"]
-        self.subsets[self.funcAmount-1][0]["coveredOptions"] = result.result["coveredOptions"]
+            self.subsets[self.funcAmount - 1][0]["ones"],
+            self.subsets[self.funcAmount - 1][0]["wildcards"],
+            [],
+            html,
+            summaryOnly,
+        )
+        self.subsets[self.funcAmount - 1][0]["functionsOptions"] = result.result[
+            "functionsOptions"
+        ]
+        self.subsets[self.funcAmount - 1][0]["coveredOptions"] = result.result[
+            "coveredOptions"
+        ]
         if not finalOnly:
             msg += f"<br/><h2>Results for merged functions nr {self.subsets[self.funcAmount-1][0]['name']}:</h2><br/>"
             msg += result.result["message"]
 
         # calculating APN for all merges of functions from remaining subsets
-        for lvl in range(self.funcAmount-2, -1, -1):
+        for lvl in range(self.funcAmount - 2, -1, -1):
             for ss in self.subsets[lvl]:
                 toExclude = []
-                for lvlHi in range(lvl+1, self.funcAmount):
+                for lvlHi in range(lvl + 1, self.funcAmount):
                     for ps in self.subsets[lvlHi]:
                         if re.search(ss["regex"], ps["regex"]):
                             toExclude.extend(ps["ones"])
-                
-                if(lvl == 1):
-                    if not finalOnly:
+
+                if not finalOnly:
+                    if lvl == 0:
                         msg += f"<br/><h2>Results for function nr {ss['name']} excluding all merges:</h2><br/>"
-                else:
-                    if not finalOnly:
+                    else:
                         msg += f"<br/><h2>Results for merged functions nr {ss['name']} excluding higher merges:</h2><br/>"
-                
+
                 result = QuineMcCluskey(
                     self.varsAmount,
                     ss["ones"],
                     ss["wildcards"],
                     toExclude,
-                    html, summaryOnly)
+                    html,
+                    summaryOnly,
+                )
                 ss["functionsOptions"] = result.result["functionsOptions"]
                 ss["coveredOptions"] = result.result["coveredOptions"]
                 if not finalOnly:
                     msg += result.result["message"]
 
         # calculating optimal set of functions for each function
-        self.subsets, uniqueFunctions = self.calculateOptimalSet(self.subsets.copy())
-        
+        self.currSmallestUqFuncSet = {
+            "size": 9999,
+            "setOptions": [],
+            "uniqueFunctionsOptions": [],
+        }
+        self.counter = 0
+        self.counter2 = 0
+        self.counter3 = []
+        self.chooseSmallestFunctionCombination(self.subsets.copy())
+        print(self.currSmallestUqFuncSet["id"], self.counter, self.counter3)
+        for setOption in self.currSmallestUqFuncSet["setOptions"]:
+            for ss in setOption[0]:
+                for i in range(len(ss["functionsOptions"])):
+                    ss["functionsOptions"][i] = sortFunctions(ss["functionsOptions"][i])
+        for i in range(len(self.currSmallestUqFuncSet["uniqueFunctionsOptions"])):
+            self.currSmallestUqFuncSet["uniqueFunctionsOptions"][i] = sortFunctions(
+                self.currSmallestUqFuncSet["uniqueFunctionsOptions"][i]
+            )
+        self.subsets = self.currSmallestUqFuncSet["setOptions"]
+        uniqueFunctions = self.currSmallestUqFuncSet["uniqueFunctionsOptions"]
+
         # calculating final results for each function
-        for ss in self.subsets[0]:
-            msg += f"<br/><h2>Final proposition for function nr {ss['name']}:</h2><br/>"
+        msgr = f"<h2>Found {len(self.subsets)} equally good final propositions:</h2>"
+        if len(self.subsets) > 2:
+            msgr += f"<button onclick='showAllResults(this)'>Show all results</button>"
+        for i in range(len(self.subsets)):
+            if i == 1:
+                msgr += "<div id='allResults' style='display:none'>"
+            msgr += f"<br/><h1>Final proposition nr {i+1}:</h1><br/><div style='padding-left: 15px; margin-left: 15px; border-left: 1px solid white'>"
+            for ss in self.subsets[i][0]:
+                msgr += f"<br/><h2>Proposition for function nr {ss['name']}:</h2><br/>"
+                if html:
+                    link = result.generateLinkForKarnaughMap(
+                        self.varsAmount, ss["ones"], ss["wildcards"]
+                    )
+                    msgr += f'<a href="{link}">Karnaugh map for this function</a>\n'
+                msgr += result.printGroups(
+                    [ss["functionsOptions"][0]], "Proposed functions:"
+                )
+                msgr += "APN notation: "
+                if html:
+                    msgr += "<span style='color:gold'>"
+                msgr += " + ".join(
+                    result.codeToVars(elem[1], html)
+                    for elem in ss["functionsOptions"][0]
+                )
+                if html:
+                    copyButton = result.generateCopyButton(ss["functionsOptions"][0])
+                    msgr += f"</span>{copyButton}\n"
+
+            # ...and printing all used functions
+            ones = []
+            for func in uniqueFunctions[i]:
+                for one in func[0]:
+                    if one not in ones:
+                        ones.append(one)
+
+            msgr += f"<br/><h2>List of all {len(uniqueFunctions[i])} used functions:</h2><br/>"
             if html:
-                link = result.generateLinkForKarnaughMap(self.varsAmount, ss["ones"], ss["wildcards"])
-                msg += f"<a href=\"{link}\">Karnaugh map for this function</a>\n"
-            msg += result.printGroups([ss["functionsOptions"][0]], "Proposed functions:")
-            msg += "APN notation: "
+                link = result.generateLinkForKarnaughMap(self.varsAmount, ones, [])
+                msgr += f'<a href="{link}">Karnaugh map if this was a function</a>\n'
+            msgr += result.printGroups([uniqueFunctions[i]], "Functions:")
+            msgr += "APN notation: "
             if html:
-                msg += "<span style='color:gold'>"
-            msg += " + ".join(result.codeToVars(elem[1], html) for elem in ss["functionsOptions"][0])
+                msgr += "<span style='color:gold'>"
+            msgr += " + ".join(
+                result.codeToVars(elem[1], html) for elem in uniqueFunctions[i]
+            )
             if html:
-                copyButton = result.generateCopyButton(ss["functionsOptions"][0])
-                msg += f"</span>{copyButton}\n"
-        
-        # ...and printing all used functions
-        uniqueFunctions = [(uniqueFunctions[func], func) for func in uniqueFunctions]
-        ones = []
-        for func in uniqueFunctions:
-            for one in func[0]:
-                if one not in ones:
-                    ones.append(one)
-        
-        msg += f"<br/><h2>List of all used functions:</h2><br/>"
-        if html:
-            link = result.generateLinkForKarnaughMap(self.varsAmount, ones, [])
-            msg += f"<a href=\"{link}\">Karnaugh map if this was a function</a>\n"
-        msg += result.printGroups([uniqueFunctions], "Functions:")
-        msg += "APN notation: "
-        if html:
-            msg += "<span style='color:gold'>"
-        msg += " + ".join(result.codeToVars(elem[1], html) for elem in uniqueFunctions)
-        if html:
-            copyButton = result.generateCopyButton(uniqueFunctions)
-            msg += f"</span>{copyButton}\n"
-        
+                copyButton = result.generateCopyButton(uniqueFunctions[i])
+                msgr += f"</span>{copyButton}\n</div>"
+
+        if len(self.subsets) > 2:
+            msgr += "</div>"
+        msg = msgr + msg
         if html:
             msg = msg.replace("\n", "<br/>")
 
         print(msg)
-    
-    def calculateOptimalSet(self, fromSet):
-        # appending all useful functions
-        for ss in fromSet[0]:
-            for lvlHi in range(self.funcAmount-1, 0, -1):
-                for ps in fromSet[lvlHi]:
-                    if re.search(ss["regex"], ps["regex"]):
-                        for func in ps["functionsOptions"][0]:
-                            for i, coveredOption in enumerate(ss["coveredOptions"]):
-                                useful = False
-                                for one in func[0]:
-                                    if one not in coveredOption:
-                                        useful = True
-                                        coveredOption.append(one)
-                                if useful:
-                                    ss["functionsOptions"][i].append(func)
-        
-        # executing for each option
-        for lvlHi in range(self.funcAmount-1, 0, -1):
-            for i, ps in enumerate(fromSet[lvlHi]):
-                if len(ps["functions"]) > 1:
-                    newVariant = fromSet.copy()
-                    newVariant[lvlHi][i]["functionsOptions"].pop(0)
-                    self.calculateOptimalSet(newVariant)
 
-        # removing functions that are no longer useful
+    def chooseSmallestFunctionCombination(self, fromSet, spacer=""):
+        self.counter += 1
+        # executing for each combination
+        for lvl in range(self.funcAmount):
+            for i, ps in enumerate(fromSet[lvl]):
+                for j in range(1, len(ps["functionsOptions"])):
+                    newVariant = deepcopy(fromSet)
+                    newVariant[lvl][i]["functionsOptions"] = [
+                        newVariant[lvl][i]["functionsOptions"][j]
+                    ]
+                    newVariant[lvl][i]["coveredOptions"] = [
+                        newVariant[lvl][i]["coveredOptions"][j]
+                    ]
+                    self.chooseSmallestFunctionCombination(newVariant, spacer + "    ")
+                ps["functionsOptions"] = [ps["functionsOptions"][0]]
+                ps["coveredOptions"] = [ps["coveredOptions"][0]]
+
+        # appending all promising functions
         for ss in fromSet[0]:
-            for functionsOption in ss["functionsOptions"]:
-                newFunctions = []
-                for i in range(len(functionsOption)-1, -1, -1):
-                    tempFunc = functionsOption.copy()
-                    tempFunc.pop(i)
-                    onesCopy = ss["ones"].copy()
-                    for func in tempFunc:
-                        for one in func[0]:
-                            if one in onesCopy:
-                                onesCopy.remove(one)
-                    if onesCopy:
-                        newFunctions.append(functionsOption[i]) # means that i function is still useful
-                functionsOption = newFunctions
-        
-        # selecting best options
+            for lvl in range(1, self.funcAmount):
+                for ps in fromSet[lvl]:
+                    if re.search(ss["regex"], ps["regex"]):
+                        ss["functionsOptions"][i].extend(ps["functionsOptions"][0])
+
+        # selecting the best functions set
         for ss in fromSet[0]:
-            minSize = 9999
-            newOptions = []
-            for functionsOption in ss["functionsOptions"]:
-                if len(functionsOption) < minSize:
-                    minSize = len(functionsOption)
-                    newOptions = [functionsOption]
-                elif len(functionsOption) == minSize:
-                    newOptions.append(functionsOption)
-            ss["functionsOptions"] = newOptions
+            ss["functionsOptions"] = chooseSmallestSetOfFunctions(
+                ss["ones"], ss["functionsOptions"][0]
+            )
+
+        self.counter2 = 0
+        self.chooseBestSetCombination(fromSet)
+        self.counter3.append(self.counter2)
+
+    def chooseBestSetCombination(self, fromSet):
+        self.counter2 += 1
+        # execution for each option
+        for i, ss in enumerate(fromSet[0]):
+            for j in range(1, len(ss["functionsOptions"])):
+                newVariant = deepcopy(fromSet)
+                newVariant[0][i]["functionsOptions"] = [
+                    newVariant[0][i]["functionsOptions"][j]
+                ]
+                self.chooseBestSetCombination(newVariant)
+            ss["functionsOptions"] = [ss["functionsOptions"][0]]
 
         # calculating unique functions
         uniqueFunctions = {}
@@ -522,52 +619,62 @@ class CombinedMinimization(object):
             for func in ss["functionsOptions"][0]:
                 if func[1] not in uniqueFunctions:
                     uniqueFunctions[func[1]] = func[0]
-        
-        return fromSet, uniqueFunctions
-        
+        uniqueFunctions = [(uniqueFunctions[func], func) for func in uniqueFunctions]
+        #! print(len(uniqueFunctions))
+        if len(uniqueFunctions) < self.currSmallestUqFuncSet["size"]:
+            self.currSmallestUqFuncSet["size"] = len(uniqueFunctions)
+            self.currSmallestUqFuncSet["setOptions"] = [deepcopy(fromSet)]
+            self.currSmallestUqFuncSet["uniqueFunctionsOptions"] = [uniqueFunctions]
+            self.currSmallestUqFuncSet[
+                "id"
+            ] = f"{self.counter}-{self.counter2} ({len(uniqueFunctions)})"
+        elif len(uniqueFunctions) == self.currSmallestUqFuncSet["size"]:
+            self.currSmallestUqFuncSet["setOptions"].append(deepcopy(fromSet))
+            self.currSmallestUqFuncSet["uniqueFunctionsOptions"].append(uniqueFunctions)
+
     def createAllSubsets(self, parentSet):
         parentSetId = ";".join([str(i) for i in parentSet])
         if parentSetId in self.subsetsId:
             return
-        
+
         self.subsetsId[parentSetId] = 1
         funcAmount = len(parentSet)
         subsetId = []
         subsetName = ""
         onesRaw = []
         wildcardsRaw = []
-        for i in range(funcAmount-1, -1, -1):
+        for i in range(funcAmount - 1, -1, -1):
             if funcAmount > 2:
                 # current set minus i element
-                self.createAllSubsets(parentSet[:i]+parentSet[i+1:])
+                self.createAllSubsets(parentSet[:i] + parentSet[i + 1 :])
 
-            if i == funcAmount-1:
-                subsetName = f"{parentSet[i]+1}"+subsetName
-            elif i == funcAmount-2:
-                subsetName = f"{parentSet[i]+1} and "+subsetName
+            if i == funcAmount - 1:
+                subsetName = f"{parentSet[i]+1}" + subsetName
+            elif i == funcAmount - 2:
+                subsetName = f"{parentSet[i]+1} and " + subsetName
             else:
-                subsetName = f"{parentSet[i]+1}, "+subsetName
-            
+                subsetName = f"{parentSet[i]+1}, " + subsetName
+
             subsetId.append(parentSet[i])
             onesRaw.extend(self.ones[parentSet[i]])
             wildcardsRaw.extend(self.wildcards[parentSet[i]])
-        
+
         ones = []
         wildcards = []
         pom = {}
         for i in range(len(onesRaw)):
             if onesRaw[i] not in pom:
                 pom[onesRaw[i]] = 0
-            
+
             pom[onesRaw[i]] += 1
             if pom[onesRaw[i]] == funcAmount:
                 ones.append(onesRaw[i])
-            
+
         pom = {}
         for i in range(len(wildcardsRaw)):
             if wildcardsRaw[i] not in pom:
                 pom[wildcardsRaw[i]] = 0
-            
+
             pom[onesRaw[i]] += 1
             if pom[wildcardsRaw[i]] == funcAmount:
                 wildcards.append(wildcardsRaw[i])
@@ -575,13 +682,15 @@ class CombinedMinimization(object):
         ones.sort()
         wildcards.sort()
 
-        self.subsets[funcAmount-1].append({
-            "regex": f".*{'.*'.join([str(i) for i in subsetId[::-1]])}.*",
-            "ones": ones,
-            "wildcards": wildcards,
-            "name": subsetName,
-            "functions": []
-            })
+        self.subsets[funcAmount - 1].append(
+            {
+                "regex": f".*{'.*'.join([str(i) for i in subsetId[::-1]])}.*",
+                "ones": ones,
+                "wildcards": wildcards,
+                "name": subsetName,
+                "functions": [],
+            }
+        )
 
 
 if __name__ == "__main__":
@@ -592,17 +701,17 @@ if __name__ == "__main__":
     parser.add_argument(
         "--summary",
         help="Whether to only print summary or full step-by-slep solution (0 for step-by-step, 1 for summary)",
-        default="0"
+        default="0",
     )
     parser.add_argument(
         "--combined",
         help="Whether or not to make combined minimization (0 for normal, 1 for combined)",
-        default="0"
+        default="0",
     )
     parser.add_argument(
         "--finalOnly",
         help="Whether to show only the final functions (0 for all, 1 for only final)",
-        default="0"
+        default="0",
     )
     parser.add_argument(
         "--wildcards", help="List of function's wildcards (split with ';')", default=""
@@ -620,7 +729,7 @@ if __name__ == "__main__":
     finalOnly = bool(int(args.finalOnly))
     amount = 1
     if args.ones:
-        amount = args.ones.count("|")+1
+        amount = args.ones.count("|") + 1
 
     def validateData(char):
         try:
@@ -631,27 +740,37 @@ if __name__ == "__main__":
 
     wildcards = []
     wildcardsRawest = args.wildcards.split("|")
-    for i in range(len(wildcardsRawest), amount+1):
+    for i in range(len(wildcardsRawest), amount + 1):
         wildcardsRawest.append("")
     for fi in range(amount):
         wildcards.append([])
-        wildcardsRaw = [int(i) for i in filter(validateData, wildcardsRawest[fi].split(";"))] if wildcardsRawest[fi] != "" else []
+        wildcardsRaw = (
+            [int(i) for i in filter(validateData, wildcardsRawest[fi].split(";"))]
+            if wildcardsRawest[fi] != ""
+            else []
+        )
         for one in wildcardsRaw:
             if one not in wildcards[fi]:
                 wildcards[fi].append(one)
 
     ones = []
     onesRawest = args.ones.split("|")
-    for i in range(len(onesRawest), amount+1):
+    for i in range(len(onesRawest), amount + 1):
         onesRawest.append("")
     for fi in range(amount):
         ones.append([])
-        onesRaw = [int(i) for i in filter(validateData, onesRawest[fi].split(";"))] if onesRawest[fi] != "" else []
+        onesRaw = (
+            [int(i) for i in filter(validateData, onesRawest[fi].split(";"))]
+            if onesRawest[fi] != ""
+            else []
+        )
         for one in onesRaw:
             if one not in ones[fi]:
                 ones[fi].append(one)
-    #ones = 0;1;4;5;6;10;11;12;14;16;17;18;19;20;21;22;25;26;27;28;29;30;31
+    # ones = 0;1;4;5;6;10;11;12;14;16;17;18;19;20;21;22;25;26;27;28;29;30;31
 
     html = bool(int(args.html))
     summary = bool(int(args.summary))
-    CombinedMinimization(howManyVars, ones, wildcards, combined, html, summary, finalOnly)
+    CombinedMinimization(
+        howManyVars, ones, wildcards, combined, html, summary, finalOnly
+    )

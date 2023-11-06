@@ -11,7 +11,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Lobster&family=Solitreo&display=swap" rel="stylesheet">
     <style>
         h2 {
-            margin-top: 50px;
+            margin-top: 10px;
             margin-bottom: 0;
         }
     </style>
@@ -39,11 +39,11 @@
         $wildcards = [];
         for($i = 1; $i <= $n; $i++) {
             array_push($ones, $_POST["ones{$i}"]);
-            array_push($wildcards, $_POST["ones{$i}"]);
+            array_push($wildcards, $_POST["wildcards{$i}"]);
         }
         $ones = join("|", $ones);
         $wildcards = join("|", $wildcards);
-        $command = "python quineMcCluskey.py --vars={$_POST["amount"]} --ones=\"{$ones}\" --wildcards=\"{$wildcards}\" --summary={$summaryOnly} --combined={$combined} --finalOnly={$finalOnly} --html=1";
+        $command = "python3 quineMcCluskey.py --vars={$_POST["amount"]} --ones=\"{$ones}\" --wildcards=\"{$wildcards}\" --summary={$summaryOnly} --combined={$combined} --finalOnly={$finalOnly} --html=1";
         echo shell_exec($command);
         echo "<br/><br/>Those were the results of executing command: <br/>{$command}";
     ?>
@@ -76,6 +76,17 @@
             setTimeout(() => {
                 button.style.setProperty("--opacity", 0);
             }, 2000);
+        }
+
+        function showAllResults(button) {
+            let t = document.getElementById("allResults").style.display == "none";
+            if (t) {
+                document.getElementById("allResults").style.display = "block";
+                button.innerHTML = "Show only first result";
+            } else {
+                document.getElementById("allResults").style.display = "none";
+                button.innerHTML = "Show all results";
+            }
         }
     </script>
 </body>
