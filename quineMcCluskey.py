@@ -1,4 +1,5 @@
-import argparse, re
+import argparse
+import re
 from copy import deepcopy
 
 
@@ -72,7 +73,7 @@ class QuineMcCluskey(object):
             msg += f'<a href="{link}">Karnaugh map for this function</a>\n'
 
         if not self.ones:
-            msg += f"\nNo ones specified, can't minimize!\n"
+            msg += "\nNo ones specified, can't minimize!\n"
             if html:
                 msg = msg.replace("\n", "<br/>")
 
@@ -366,7 +367,7 @@ class QuineMcCluskey(object):
                 mask = p1[1][:idx] + "-" + p1[1][idx + 1 :]
                 elems = self.mergeSort(p1[0], p2[0], lvl)
                 new = [elems, mask, False]
-                if not new in merged:
+                if new not in merged:
                     merged.append(new)
         return merged
 
@@ -382,7 +383,7 @@ class QuineMcCluskey(object):
 
         for group in self.groups:
             for elem in group:
-                if elem[2] == False:
+                if elem[2] is False:
                     self.results.append((elem[0], elem[1]))
 
         if created == 0:
@@ -435,7 +436,7 @@ class CombinedMinimization(object):
             print(msg)
             return
 
-        #! python quineMcCluskey.py --vars 4 --ones "2;3;6;7;14;15|2;3;4;5;12;13;14;15|2;3;4;5;9;11;14;15" --summary 1 --html 0 --combined 1
+        # ! python quineMcCluskey.py --vars 4 --ones "2;3;6;7;14;15|2;3;4;5;12;13;14;15|2;3;4;5;9;11;14;15" --summary 1 --html 0 --combined 1
         # creating all possible subsets of set of all functions
         self.createAllSubsets([i for i in range(self.funcAmount)])
 
@@ -510,8 +511,8 @@ class CombinedMinimization(object):
 
         # calculating final results for each function
         msgr = f"<h2>Found {len(self.subsets)} equally good final propositions:</h2>"
-        if len(self.subsets) > 2:
-            msgr += f"<button onclick='showAllResults(this)'>Show all results</button>"
+        if len(self.subsets) > 1:
+            msgr += "<button onclick='showAllResults(this)'>Show all results</button>"
         for i in range(len(self.subsets)):
             if i == 1:
                 msgr += "<div id='allResults' style='display:none'>"
@@ -559,7 +560,7 @@ class CombinedMinimization(object):
                 copyButton = result.generateCopyButton(uniqueFunctions[i])
                 msgr += f"</span>{copyButton}\n</div>"
 
-        if len(self.subsets) > 2:
+        if len(self.subsets) > 1:
             msgr += "</div>"
         msg = msgr + msg
         if html:
@@ -620,7 +621,7 @@ class CombinedMinimization(object):
                 if func[1] not in uniqueFunctions:
                     uniqueFunctions[func[1]] = func[0]
         uniqueFunctions = [(uniqueFunctions[func], func) for func in uniqueFunctions]
-        #! print(len(uniqueFunctions))
+        # ! print(len(uniqueFunctions))
         if len(uniqueFunctions) < self.currSmallestUqFuncSet["size"]:
             self.currSmallestUqFuncSet["size"] = len(uniqueFunctions)
             self.currSmallestUqFuncSet["setOptions"] = [deepcopy(fromSet)]
@@ -733,9 +734,9 @@ if __name__ == "__main__":
 
     def validateData(char):
         try:
-            i = int(char)
+            int(char)
             return True
-        except:
+        except Exception:
             return False
 
     wildcards = []
