@@ -17,6 +17,42 @@ if (direction == null) {
     direction = "vertical"
 }
 
+function copy(button, value) {
+    const copyText = document.createElement("input");
+    copyText.value = value;
+    button.appendChild(copyText);
+    copyText.select();
+    document.execCommand("copy");
+    button.removeChild(copyText);
+    button.style.setProperty("--opacity", 1);
+    setTimeout(() => {
+        button.style.setProperty("--opacity", 0);
+    }, 2000);
+}
+
+let editable = urlParams.get('editable');
+if (editable == 1) {
+    editable = true;
+    karnaughMap.classList.add("editable");
+    const copyOnes = document.createElement("button");
+    copyOnes.innerHTML = "Copy ones";
+    copyOnes.addEventListener("click", (e) => {
+        copy(e.target, ones.join(";"))
+    })
+    const copyWildcards = document.createElement("button");
+    copyWildcards.innerHTML = "Copy wildcards";
+    copyWildcards.addEventListener("click", (e) => {
+        copy(e.target, wildcards.join(";"))
+    })
+    const box = document.createElement("div");
+    box.appendChild(copyOnes);
+    box.appendChild(copyWildcards);
+    document.getElementById("container").appendChild(box);
+}
+else {
+    editable = false
+}
+
 let vars = [];
 try {
     vars = urlParams.get('vars');
@@ -66,6 +102,14 @@ function getGrayCodes(exponential) {
     return codes
 }
 
+function updateURLParams() {
+    const queryString = window.location.search;
+    const urlParams = new URLSearchParams(queryString);
+    urlParams.set("ones", ones.join(";"));
+    urlParams.set("wildcards", wildcards.join(";"));
+    history.replaceState(null, null, "?"+urlParams.toString());
+}
+
 let horizontalCodes = getGrayCodes(horizontal);
 let verticalCodes = getGrayCodes(vertical);
 
@@ -110,14 +154,14 @@ for(let i = 0; i < 2**vertical; i++) {
         let idx = `${parseInt(verticalCodes[i]+horizontalCodes[j], 2)}`;
         if (ones.includes(idx)) {
             newCell.innerHTML = "<div class='content'>1</div>";
-            newCell.classList.add("one");
+            newCell.className = "one";
         } else if (wildcards.includes(idx)) {
             newCell.innerHTML = "<div class='content'>-</div>";
-            newCell.classList.add("wildcard");
+            newCell.className = "wildcard";
         }
         else {
             newCell.innerHTML = "<div class='content'>0</div>";
-            newCell.classList.add("zero");
+            newCell.className = "zero";
         }
         newCell.setAttribute("idx", idx);
 
@@ -135,6 +179,31 @@ for(let i = 0; i < 2**vertical; i++) {
         }
         
         newRow.appendChild(newCell);
+
+        if (!editable) { continue; }
+        newCell.addEventListener("click", (e) => {
+            const cell = e.target;
+            if (cell.tagName == "DIV") {
+                cell.parentElement.click();
+                return;
+            }
+            const value = cell.getElementsByTagName("div")[0];
+            if(value.innerHTML == "0") {
+                value.innerHTML = "1";
+                cell.className = "one";
+                ones.push(idx);
+            } else if(value.innerHTML == "1") {
+                value.innerHTML = "-";
+                cell.className = "wildcard";
+                ones.pop(ones.indexOf(idx));
+                wildcards.push(idx);
+            } else if(value.innerHTML == "-") {
+                value.innerHTML = "0";
+                cell.className = "zero";
+                wildcards.pop(ones.indexOf(idx));
+            }
+            updateURLParams();
+        });
     }
     karnaughMap.appendChild(newRow);
 }
