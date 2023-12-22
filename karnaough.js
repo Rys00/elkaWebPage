@@ -154,14 +154,14 @@ for(let i = 0; i < 2**vertical; i++) {
         let idx = `${parseInt(verticalCodes[i]+horizontalCodes[j], 2)}`;
         if (ones.includes(idx)) {
             newCell.innerHTML = "<div class='content'>1</div>";
-            newCell.className = "one";
+            newCell.classList.add("one");
         } else if (wildcards.includes(idx)) {
             newCell.innerHTML = "<div class='content'>-</div>";
-            newCell.className = "wildcard";
+            newCell.classList.add("wildcard");
         }
         else {
             newCell.innerHTML = "<div class='content'>0</div>";
-            newCell.className = "zero";
+            newCell.classList.add("zero");
         }
         newCell.setAttribute("idx", idx);
 
@@ -190,16 +190,19 @@ for(let i = 0; i < 2**vertical; i++) {
             const value = cell.getElementsByTagName("div")[0];
             if(value.innerHTML == "0") {
                 value.innerHTML = "1";
-                cell.className = "one";
+                cell.classList.remove("zero");
+                cell.classList.add("one");
                 ones.push(idx);
             } else if(value.innerHTML == "1") {
                 value.innerHTML = "-";
-                cell.className = "wildcard";
+                cell.classList.remove("one");
+                cell.classList.add("wildcard");
                 ones.pop(ones.indexOf(idx));
                 wildcards.push(idx);
             } else if(value.innerHTML == "-") {
                 value.innerHTML = "0";
-                cell.className = "zero";
+                cell.classList.remove("wildcard");
+                cell.classList.add("zero");
                 wildcards.pop(ones.indexOf(idx));
             }
             updateURLParams();
